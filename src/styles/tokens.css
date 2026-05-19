@@ -1,0 +1,71 @@
+:root {
+  /* Sourcegraph marketing dark palette (sourcegraph.com) */
+  --bg-base: #020202;
+  --bg-elevated: #0e0e0e;
+  --bg-card: #0e0e0e;
+  --bg-card-hover: #202020;
+  --bg-inset: #202020;
+  --bg-pane-header: #141414;
+
+  --border-subtle: #202020;
+  --border-default: #343434;
+  --border-focus: oklch(62.5% 0.22 265deg);
+
+  --text-primary: #ededed;
+  --text-secondary: #8a8a8a;
+  --text-muted: #666666;
+  --text-agent: #c3c3c3;
+
+  /* Vermillion brand — not pink/magenta */
+  --brand: #f34e3f;
+  --brand-bright: #ff7867;
+  --brand-logo: #ff5543;
+  --brand-dim: #d14d41;
+  --brand-bg: rgba(243, 78, 63, 0.12);
+  --brand-border: rgba(243, 78, 63, 0.35);
+
+  /* Blue-violet accent for focus rings only */
+  --accent-violet: oklch(57% 0.2 265deg);
+  --accent-violet-muted: oklch(41% 0.13 265deg);
+
+  --accent-gradient: linear-gradient(
+    135deg,
+    #ff7867 0%,
+    #f34e3f 50%,
+    #e0443a 100%
+  );
+
+  --success: #3fb950;
+  --success-bg: rgba(7, 27, 12, 0.6);
+  --success-border: #3fb950;
+  --danger: #d14d41;
+  --danger-bg: rgba(37, 14, 13, 0.6);
+  --danger-border: #d14d41;
+
+  --mcp-glow: rgba(243, 78, 63, 0.12);
+
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  /* Typography scale (aligned with AgentComparison on sourcegraph.com/mcp) */
+  --font-size-xs: 0.8125rem; /* 13px */
+  --font-size-sm: 0.875rem; /* 14px */
+  --font-size-base: 1rem; /* 16px */
+  --font-size-md: 0.9375rem; /* 15px */
+  --font-size-lg: 1.125rem; /* 18px */
+  --font-size-xl: 1.25rem; /* 20px */
+  --font-size-2xl: 1.5rem; /* 24px */
+
+  --line-height-tight: 1.28;
+  --line-height-normal: 1.55;
+  --line-height-relaxed: 1.6;
+
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-pane: 14px;
+
+  --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.5), 0 12px 40px rgba(0, 0, 0, 0.4);
+  --transition-fast: 150ms ease;
+  --transition-normal: 250ms ease;
+}

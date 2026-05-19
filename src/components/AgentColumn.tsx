@@ -1,0 +1,83 @@
+import type { ColumnState, ExecutionMetrics } from "../types/scenario";
+import { ExecutionMetricsBar } from "./ExecutionMetrics";
+import { ConfidenceMeter } from "./ConfidenceMeter";
+import { MessageStream } from "./MessageStream";
+import { MissedItems } from "./MissedItems";
+import { ToolCallCard } from "./ToolCallCard";
+import "./AgentColumn.css";
+
+interface AgentColumnProps {
+  title: string;
+  variant: "plain" | "mcp";
+  state: ColumnState;
+  metrics: ExecutionMetrics;
+  repo?: string;
+  repoUrl?: string;
+}
+
+export function AgentColumn({
+  title,
+  variant,
+  state,
+  metrics,
+  repo,
+  repoUrl,
+}: AgentColumnProps) {
+  const isMcp = variant === "mcp";
+  const showMissed =
+    state.missedItems &&
+    state.missedItems.length > 0 &&
+    (!isMcp || state.completed);
+  const missedVariant = isMcp ? "complete" : "missed";
+
+  return (
+    <div
+      className={`agent-column ${isMcp ? "agent-column--mcp" : "agent-column--plain"}`}
+    >
+      <div className="agent-column__header">
+        <div className="agent-column__title-row">
+          <h3 className="agent-column__title">{title}</h3>
+          {isMcp && (
+            <span className="agent-column__mcp-badge">
+              <span className="agent-column__sg-logo">sg</span> mcp
+            </span>
+          )}
+        </div>
+        {repo && (
+          <a
+            className="agent-column__repo"
+            href={repoUrl ?? `https://github.com/${repo}`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {repo}
+          </a>
+        )}
+      </div>
+
+      <ConfidenceMeter
+        value={state.confidence}
+        variant={isMcp ? "mcp" : "default"}
+      />
+
+      <ExecutionMetricsBar
+        metrics={metrics}
+        visible={state.completed}
+      />
+
+      <div className="agent-column__body">
+        <MessageStream
+          userMessages={state.userMessages}
+          assistantMessages={state.assistantMessages}
+        />
+        {state.toolCalls.map((tool) => (
+          <ToolCallCard key={tool.id} tool={tool} />
+        ))}
+      </div>
+
+      {showMissed && (
+        <MissedItems items={state.missedItems} variant={missedVariant} />
+      )}
+    </div>
+  );
+}

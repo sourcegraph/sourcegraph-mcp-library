@@ -1,0 +1,67 @@
+.dual-agent {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+  gap: 12px;
+}
+
+.dual-agent__toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 18px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-pane);
+}
+
+.dual-agent__prompt-label {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.dual-agent__prompt-text {
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-normal);
+  margin-top: 6px;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.dual-agent__prompt-placeholder {
+  font-size: var(--font-size-md);
+  color: var(--text-muted);
+}
+
+.dual-agent__savings {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  line-height: var(--line-height-normal);
+}
+
+.dual-agent__savings strong {
+  color: var(--brand-bright);
+  font-weight: 600;
+}
+
+.dual-agent__savings-detail {
+  color: var(--text-muted);
+}
+
+.dual-agent__columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
+}
+
+@media (max-width: 900px) {
+  .dual-agent__columns {
+    grid-template-columns: 1fr;
+  }
+}
