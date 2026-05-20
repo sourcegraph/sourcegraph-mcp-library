@@ -10,6 +10,10 @@ export const promptMetrics = {
     withoutMCP: { timeSeconds: 18 * 60, costUsd: 3.9 },
     withMCP: { timeSeconds: 5 * 60 + 10, costUsd: 1.1 },
   },
+  understandBusinessLogic: {
+    withoutMCP: { timeSeconds: 16 * 60, costUsd: 3.55 },
+    withMCP: { timeSeconds: 4 * 60 + 45, costUsd: 0.95 },
+  },
   codeReuseRetry: {
     withoutMCP: { timeSeconds: 14 * 60, costUsd: 2.75 },
     withMCP: { timeSeconds: 5 * 60 + 20, costUsd: 0.98 },

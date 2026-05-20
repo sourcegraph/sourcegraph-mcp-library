@@ -26,14 +26,27 @@ export interface PromptMetrics {
   withMCP: ExecutionMetrics;
 }
 
+export type RepoEnvironment = "multi-repo" | "mono-repo";
+
+export interface ScenarioPromptLogs {
+  /** Raw claude.log text bundled from src/scenarios/.../without-mcp.claude.log */
+  withoutMCP: string;
+  /** Raw claude.log text bundled from src/scenarios/.../with-mcp.claude.log */
+  withMCP: string;
+}
+
 export interface ScenarioPrompt {
   id: string;
-  /** Short label for the prompt picker */
+  /** Short label for the demo picker in the sidebar */
   label: string;
   text: string;
+  /** Display-only chip; not a user-facing toggle */
+  environment?: RepoEnvironment;
   metrics: PromptMetrics;
   withoutMCP: TimelineEvent[];
   withMCP: TimelineEvent[];
+  /** Live execution logs for download (manually added to the repo) */
+  logs: ScenarioPromptLogs;
 }
 
 export interface Scenario {

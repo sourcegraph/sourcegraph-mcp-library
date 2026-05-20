@@ -25,6 +25,34 @@
   flex-wrap: wrap;
 }
 
+.agent-column__log-download {
+  margin-left: auto;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.agent-column__log-download:hover {
+  color: var(--text-primary);
+  border-color: var(--border-default);
+  background: var(--bg-pane-header);
+}
+
+.agent-column__log-download:focus-visible {
+  outline: 2px solid var(--brand-bright);
+  outline-offset: 2px;
+}
+
 .agent-column__title {
   font-size: var(--font-size-md);
   font-weight: 500;

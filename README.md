@@ -40,46 +40,71 @@ For offline demos: `npm run build && npx serve dist`
 
 ## Editing scenarios
 
-Each scenario lives in `src/scenarios/` and supports **multiple prompts**:
+Scenarios are organized as **one folder per use case**, with **one subfolder per prompt** (sub-scenario):
+
+```
+src/scenarios/
+  prompt-metrics.ts
+  index.ts
+  understand-existing-code/
+    index.ts                          # scenario metadata + prompt imports
+    cross-repo-discovery/
+      index.ts                        # prompt metadata, metrics, log imports
+      timeline.ts                     # withoutMCP / withMCP scripted events
+      without-mcp.claude.log          # live run log (replace manually)
+      with-mcp.claude.log             # live run log (replace manually)
+    architecture-comprehension/
+      ...
+  code-reuse-consistency/
+    ...
+```
+
+Each scenario `index.ts` only wires sub-scenarios together:
 
 ```ts
-export const myScenario: Scenario = {
-  id: "my-scenario",
-  title: "My use case",
-  subtitle: "Short description",
-  repo: "org/repo",
-  prompts: [
-    {
-      id: "prompt-a",
-      label: "Short tab label",
-      text: "Full prompt shown in the demo toolbar",
-      metrics: {
-        withoutMCP: { timeSeconds: 1320, costUsd: 4.85 },
-        withMCP: { timeSeconds: 445, costUsd: 1.52 },
-      },
-      withoutMCP: [/* timeline events */],
-      withMCP: [/* timeline events */],
-    },
-    {
-      id: "prompt-b",
-      label: "Second prompt",
-      text: "Another prompt for the same use case",
-      withoutMCP: [],
-      withMCP: [],
-    },
-  ],
+import type { Scenario } from "../../types/scenario";
+import { crossRepoDiscoveryPrompt } from "./cross-repo-discovery";
+
+export const understandExistingCode: Scenario = {
+  id: "understand-existing-code",
+  title: "Understanding existing code",
+  subtitle: "Explore unfamiliar codebases",
+  repo: "microsoft/vscode",
+  prompts: [crossRepoDiscoveryPrompt],
 };
 ```
 
-Timelines use millisecond offsets:
+Each sub-scenario folder owns the scripted timeline and execution logs:
 
 ```ts
-{ at: 500, type: "tool", name: "keyword_search", args: '{ query: "..." }', status: "running" }
-{ at: 1200, type: "confidence", value: 75 }
-{ at: 3000, type: "missed", items: ["Item one", "Item two"] }
+import type { ScenarioPrompt } from "../../../types/scenario";
+import { promptMetrics } from "../../prompt-metrics";
+import withoutMcpLog from "./without-mcp.claude.log?raw";
+import withMcpLog from "./with-mcp.claude.log?raw";
+import { withoutMCP, withMCP } from "./timeline";
+
+export const crossRepoDiscoveryPrompt: ScenarioPrompt = {
+  id: "cross-repo-discovery",
+  label: "Cross-repo dependency / hidden repo discovery",
+  text: "How does Settings Sync handle…",
+  metrics: promptMetrics.understandSettingsSync,
+  withoutMCP,
+  withMCP,
+  logs: {
+    withoutMCP: withoutMcpLog,
+    withMCP: withMcpLog,
+  },
+};
 ```
 
-Event types: `user`, `assistant`, `tool`, `confidence`, `missed`, `complete`.
+### Adding live execution logs
+
+After running Claude for real, drop the raw log text into the matching sub-scenario folder:
+
+- `without-mcp.claude.log` — agent run without Sourcegraph MCP
+- `with-mcp.claude.log` — agent run with Sourcegraph MCP
+
+No upload UI: replace the placeholder files in git. The demo exposes a **Download log** button on each agent column so viewers can save the bundled log as proof of live execution.
 
 Register new scenarios in `src/scenarios/index.ts`.
 

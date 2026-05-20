@@ -4,13 +4,13 @@ import "./UseCasePanel.css";
 interface UseCasePanelProps {
   scenarios: Scenario[];
   activeId: string | null;
-  onSelect: (id: string) => void;
+  onSelectScenario: (id: string) => void;
 }
 
 export function UseCasePanel({
   scenarios,
   activeId,
-  onSelect,
+  onSelectScenario,
 }: UseCasePanelProps) {
   return (
     <aside className="use-case-panel">
@@ -19,32 +19,40 @@ export function UseCasePanel({
         Press <kbd>1</kbd>–<kbd>7</kbd> to switch
       </p>
       <ul className="use-case-panel__list">
-        {scenarios.map((scenario, index) => (
-          <li key={scenario.id}>
-            <button
-              type="button"
-              className={`use-case-card ${activeId === scenario.id ? "use-case-card--active" : ""}`}
-              onClick={() => onSelect(scenario.id)}
-              aria-current={activeId === scenario.id ? "true" : undefined}
-            >
-              <span className="use-case-card__index">{index + 1}</span>
-              <div className="use-case-card__content">
-                <span className="use-case-card__title">{scenario.title}</span>
-                <span className="use-case-card__subtitle">
-                  {scenario.subtitle}
-                </span>
-                {scenario.prompts.length > 1 && (
-                  <span className="use-case-card__prompt-count">
-                    {scenario.prompts.length} prompts
+        {scenarios.map((scenario, index) => {
+          const isActive = activeId === scenario.id;
+          const demoCount = scenario.prompts.length;
+          const singlePrompt = demoCount === 1 ? scenario.prompts[0] : null;
+
+          return (
+            <li key={scenario.id} className="use-case-panel__item">
+              <button
+                type="button"
+                className={`use-case-card ${isActive ? "use-case-card--active" : ""}`}
+                onClick={() => onSelectScenario(scenario.id)}
+                aria-current={isActive ? "true" : undefined}
+              >
+                <span className="use-case-card__index">{index + 1}</span>
+                <div className="use-case-card__content">
+                  <span className="use-case-card__title">{scenario.title}</span>
+                  <span className="use-case-card__subtitle">
+                    {scenario.subtitle}
                   </span>
-                )}
-                {scenario.repo && (
-                  <span className="use-case-card__repo">{scenario.repo}</span>
-                )}
-              </div>
-            </button>
-          </li>
-        ))}
+                  <div className="use-case-card__meta">
+                    <span className="use-case-card__prompt-count">
+                      {demoCount} {demoCount === 1 ? "demo" : "demos"}
+                    </span>
+                    {singlePrompt?.environment && (
+                      <span className="use-case-card__chip">
+                        {singlePrompt.environment}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </button>
+            </li>
+          );
+        })}
       </ul>
     </aside>
   );

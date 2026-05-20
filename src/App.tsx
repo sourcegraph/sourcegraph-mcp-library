@@ -82,16 +82,16 @@ export default function App() {
         <UseCasePanel
           scenarios={scenarios}
           activeId={activeId}
-          onSelect={handleSelectScenario}
+          onSelectScenario={handleSelectScenario}
         />
         <DualAgentView
           scenario={scenario}
           activePrompt={activePrompt}
           activePromptId={activePromptId}
+          onSelectPrompt={handleSelectPrompt}
           withoutState={withoutState}
           withState={withState}
           isPlaying={isPlaying}
-          onSelectPrompt={handleSelectPrompt}
         />
       </main>
     </div>

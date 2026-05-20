@@ -1,4 +1,5 @@
 import type { ColumnState, ExecutionMetrics } from "../types/scenario";
+import { buildLogFilename, downloadLog } from "../utils/downloadLog";
 import { ExecutionMetricsBar } from "./ExecutionMetrics";
 import { ConfidenceMeter } from "./ConfidenceMeter";
 import { MessageStream } from "./MessageStream";
@@ -13,6 +14,9 @@ interface AgentColumnProps {
   metrics: ExecutionMetrics;
   repo?: string;
   repoUrl?: string;
+  scenarioId?: string;
+  promptId?: string;
+  logContent?: string;
 }
 
 export function AgentColumn({
@@ -22,6 +26,9 @@ export function AgentColumn({
   metrics,
   repo,
   repoUrl,
+  scenarioId,
+  promptId,
+  logContent,
 }: AgentColumnProps) {
   const isMcp = variant === "mcp";
   const showMissed =
@@ -29,6 +36,15 @@ export function AgentColumn({
     state.missedItems.length > 0 &&
     (!isMcp || state.completed);
   const missedVariant = isMcp ? "complete" : "missed";
+  const canDownloadLog = Boolean(scenarioId && promptId && logContent);
+
+  const handleDownloadLog = () => {
+    if (!scenarioId || !promptId || !logContent) return;
+    downloadLog(
+      buildLogFilename(scenarioId, promptId, variant),
+      logContent,
+    );
+  };
 
   return (
     <div
@@ -41,6 +57,16 @@ export function AgentColumn({
             <span className="agent-column__mcp-badge">
               <span className="agent-column__sg-logo">sg</span> mcp
             </span>
+          )}
+          {canDownloadLog && (
+            <button
+              type="button"
+              className="agent-column__log-download"
+              onClick={handleDownloadLog}
+              title="Download Claude execution log from live run"
+            >
+              Download log
+            </button>
           )}
         </div>
         {repo && (

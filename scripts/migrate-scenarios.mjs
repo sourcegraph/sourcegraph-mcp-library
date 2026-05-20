@@ -27,8 +27,9 @@ for (const file of files) {
     /prompt:\s*\n\s*"(?:[^"\\]|\\.)*",\s*\n\s*withoutMCP:/,
     `prompts: [
     {
-      id: "primary",
-      label: ${JSON.stringify(label)},
+      id: "demo",
+      label: "Demo",
+      environment: "mono-repo",
       text: ${JSON.stringify(promptText)},
       withoutMCP:`,
   );

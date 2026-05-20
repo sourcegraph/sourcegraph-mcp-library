@@ -5,27 +5,27 @@ import {
   savingsPercent,
 } from "../types/scenario";
 import { AgentColumn } from "./AgentColumn";
-import { PromptSelector } from "./PromptSelector";
+import { DemoTabs } from "./DemoTabs";
 import "./DualAgentView.css";
 
 interface DualAgentViewProps {
   scenario: Scenario | null;
   activePrompt: ScenarioPrompt | null;
   activePromptId: string | null;
+  onSelectPrompt: (promptId: string) => void;
   withoutState: ColumnState;
   withState: ColumnState;
   isPlaying: boolean;
-  onSelectPrompt: (promptId: string) => void;
 }
 
 export function DualAgentView({
   scenario,
   activePrompt,
   activePromptId,
+  onSelectPrompt,
   withoutState,
   withState,
   isPlaying,
-  onSelectPrompt,
 }: DualAgentViewProps) {
   const showSavings =
     activePrompt &&
@@ -48,20 +48,17 @@ export function DualAgentView({
 
   return (
     <section className="dual-agent">
+      {scenario && scenario.prompts.length > 1 && (
+        <DemoTabs
+          prompts={scenario.prompts}
+          activePromptId={activePromptId}
+          onSelectPrompt={onSelectPrompt}
+        />
+      )}
       <div className="dual-agent__toolbar">
         <div className="dual-agent__prompt">
           {scenario && activePrompt ? (
-            <>
-              <span className="dual-agent__prompt-label">Environment</span>
-              {scenario.prompts.length > 1 && (
-                <PromptSelector
-                  prompts={scenario.prompts}
-                  activePromptId={activePromptId}
-                  onSelect={onSelectPrompt}
-                />
-              )}
-              <p className="dual-agent__prompt-text">{activePrompt.text}</p>
-            </>
+            <p className="dual-agent__prompt-text">{activePrompt.text}</p>
           ) : (
             <p className="dual-agent__prompt-placeholder">
               Select a use case to start the demo
@@ -96,6 +93,9 @@ export function DualAgentView({
           }
           repo={scenario?.repo}
           repoUrl={scenario?.repoUrl}
+          scenarioId={scenario?.id}
+          promptId={activePrompt?.id}
+          logContent={activePrompt?.logs.withoutMCP}
         />
         <AgentColumn
           title="Agent + Sourcegraph MCP"
@@ -109,6 +109,9 @@ export function DualAgentView({
           }
           repo={scenario?.repo}
           repoUrl={scenario?.repoUrl}
+          scenarioId={scenario?.id}
+          promptId={activePrompt?.id}
+          logContent={activePrompt?.logs.withMCP}
         />
       </div>
     </section>

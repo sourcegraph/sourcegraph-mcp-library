@@ -1,11 +1,11 @@
 import type { Scenario } from "../types/scenario";
-import { audit } from "./audit";
-import { bugFixingTests } from "./bug-fixing-tests";
+import { understandExistingCode } from "./understand-existing-code";
 import { codeReuseConsistency } from "./code-reuse-consistency";
 import { featureDevelopmentPlan } from "./feature-development-plan";
+import { bugFixingTests } from "./bug-fixing-tests";
 import { incidentInvestigation } from "./incident-investigation";
 import { security } from "./security";
-import { understandExistingCode } from "./understand-existing-code";
+import { audit } from "./audit";
 
 export const scenarios: Scenario[] = [
   understandExistingCode,
