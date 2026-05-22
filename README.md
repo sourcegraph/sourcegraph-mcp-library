@@ -20,11 +20,6 @@ npm run preview
 
 For offline demos: `npm run build && npx serve dist`
 
-## Using the demo
-
-1. Pick a **use case** on the right (or press `1`–`7`).
-2. Watch both agent columns play in sync (~6–10 seconds per scenario).
-3. Click the same use case or environment again to re-run the demo.
 
 ## Use cases
 
