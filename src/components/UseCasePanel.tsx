@@ -16,7 +16,7 @@ export function UseCasePanel({
     <aside className="use-case-panel">
       <h2 className="use-case-panel__heading">Use cases</h2>
       <p className="use-case-panel__hint">
-        Press <kbd>1</kbd>–<kbd>7</kbd> to switch
+        Press <kbd>1</kbd>–<kbd>{scenarios.length}</kbd> to switch
       </p>
       <ul className="use-case-panel__list">
         {scenarios.map((scenario, index) => {
