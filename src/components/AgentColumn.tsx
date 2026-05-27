@@ -1,7 +1,6 @@
 import type { ColumnState, ExecutionMetrics } from "../types/scenario";
 import { buildLogFilename, downloadLog } from "../utils/downloadLog";
 import { ExecutionMetricsBar } from "./ExecutionMetrics";
-import { ConfidenceMeter } from "./ConfidenceMeter";
 import { MessageStream } from "./MessageStream";
 import { MissedItems } from "./MissedItems";
 import { ToolCallCard } from "./ToolCallCard";
@@ -80,11 +79,6 @@ export function AgentColumn({
           </a>
         )}
       </div>
-
-      <ConfidenceMeter
-        value={state.confidence}
-        variant={isMcp ? "mcp" : "default"}
-      />
 
       <ExecutionMetricsBar
         metrics={metrics}

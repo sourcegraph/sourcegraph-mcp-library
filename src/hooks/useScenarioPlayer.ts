@@ -50,9 +50,6 @@ function applyEvent(state: ColumnState, event: TimelineEvent): ColumnState {
       }
       break;
     }
-    case "confidence":
-      next.confidence = event.value;
-      break;
     case "missed":
       next.missedItems = event.items;
       break;

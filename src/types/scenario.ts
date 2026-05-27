@@ -10,7 +10,6 @@ export type TimelineEvent =
       args: string;
       status?: ToolStatus;
     }
-  | { at: number; type: "confidence"; value: number }
   | { at: number; type: "missed"; items: string[] }
   | { at: number; type: "complete" };
 
@@ -77,7 +76,6 @@ export interface ToolCall {
 }
 
 export interface ColumnState {
-  confidence: number;
   userMessages: UserMessage[];
   assistantMessages: AssistantMessage[];
   toolCalls: ToolCall[];
@@ -86,7 +84,6 @@ export interface ColumnState {
 }
 
 export const emptyColumnState = (): ColumnState => ({
-  confidence: 0,
   userMessages: [],
   assistantMessages: [],
   toolCalls: [],
