@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useState } from "react";
 import type { ColumnState, Scenario, ScenarioPrompt } from "../types/scenario";
 import {
   formatCost,
@@ -27,24 +28,44 @@ export function DualAgentView({
   withState,
   isPlaying,
 }: DualAgentViewProps) {
+  // Synced collapse state for the "missed items" panels in both columns.
+  // Defaults to collapsed; resets to collapsed whenever the active prompt changes.
+  const [missedCollapsed, setMissedCollapsed] = useState(true);
+  useEffect(() => {
+    setMissedCollapsed(true);
+  }, [activePromptId]);
+  const handleToggleMissed = useCallback(() => {
+    setMissedCollapsed((c) => !c);
+  }, []);
+
+  const withoutMetrics = activePrompt?.metrics.withoutMCP;
+  const withMetrics = activePrompt?.metrics.withMCP;
+
+  const hasTime =
+    withoutMetrics?.timeSeconds !== undefined &&
+    withMetrics?.timeSeconds !== undefined;
+  const hasCost =
+    withoutMetrics?.costUsd !== undefined &&
+    withMetrics?.costUsd !== undefined;
+
   const showSavings =
     activePrompt &&
     withoutState.completed &&
     withState.completed &&
-    !isPlaying;
+    !isPlaying &&
+    (hasTime || hasCost);
 
-  const timeSaved = activePrompt
-    ? savingsPercent(
-        activePrompt.metrics.withoutMCP.timeSeconds,
-        activePrompt.metrics.withMCP.timeSeconds,
-      )
-    : 0;
-  const costSaved = activePrompt
-    ? savingsPercent(
-        activePrompt.metrics.withoutMCP.costUsd,
-        activePrompt.metrics.withMCP.costUsd,
-      )
-    : 0;
+  const timeSaved =
+    hasTime && withoutMetrics && withMetrics
+      ? savingsPercent(
+          withoutMetrics.timeSeconds!,
+          withMetrics.timeSeconds!,
+        )
+      : 0;
+  const costSaved =
+    hasCost && withoutMetrics && withMetrics
+      ? savingsPercent(withoutMetrics.costUsd!, withMetrics.costUsd!)
+      : 0;
 
   return (
     <section className="dual-agent">
@@ -67,15 +88,19 @@ export function DualAgentView({
         </div>
         {showSavings && activePrompt && (
           <p className="dual-agent__savings" role="status">
-            With Sourcegraph MCP: <strong>{timeSaved}% faster</strong>
-            {" · "}
-            <strong>{costSaved}% lower cost</strong>
+            With Sourcegraph MCP:{" "}
+            {hasTime && <strong>{timeSaved}% faster</strong>}
+            {hasTime && hasCost && " · "}
+            {hasCost && <strong>{costSaved}% lower cost</strong>}
             <span className="dual-agent__savings-detail">
               {" "}
-              ({formatDuration(activePrompt.metrics.withoutMCP.timeSeconds)}{" "}
-              {formatCost(activePrompt.metrics.withoutMCP.costUsd)} →{" "}
-              {formatDuration(activePrompt.metrics.withMCP.timeSeconds)}{" "}
-              {formatCost(activePrompt.metrics.withMCP.costUsd)})
+              (
+              {hasTime &&
+                `${formatDuration(withoutMetrics!.timeSeconds!)} `}
+              {hasCost && formatCost(withoutMetrics!.costUsd!)}
+              {" → "}
+              {hasTime && `${formatDuration(withMetrics!.timeSeconds!)} `}
+              {hasCost && formatCost(withMetrics!.costUsd!)})
             </span>
           </p>
         )}
@@ -85,33 +110,27 @@ export function DualAgentView({
           title="Agent"
           variant="plain"
           state={withoutState}
-          metrics={
-            activePrompt?.metrics.withoutMCP ?? {
-              timeSeconds: 0,
-              costUsd: 0,
-            }
-          }
+          metrics={activePrompt?.metrics.withoutMCP ?? {}}
           repo={scenario?.repo}
           repoUrl={scenario?.repoUrl}
           scenarioId={scenario?.id}
           promptId={activePrompt?.id}
           logContent={activePrompt?.logs.withoutMCP}
+          missedCollapsed={missedCollapsed}
+          onToggleMissed={handleToggleMissed}
         />
         <AgentColumn
           title="Agent + Sourcegraph MCP"
           variant="mcp"
           state={withState}
-          metrics={
-            activePrompt?.metrics.withMCP ?? {
-              timeSeconds: 0,
-              costUsd: 0,
-            }
-          }
+          metrics={activePrompt?.metrics.withMCP ?? {}}
           repo={scenario?.repo}
           repoUrl={scenario?.repoUrl}
           scenarioId={scenario?.id}
           promptId={activePrompt?.id}
           logContent={activePrompt?.logs.withMCP}
+          missedCollapsed={missedCollapsed}
+          onToggleMissed={handleToggleMissed}
         />
       </div>
     </section>

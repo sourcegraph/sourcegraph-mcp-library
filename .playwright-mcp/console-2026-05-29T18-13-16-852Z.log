@@ -1,0 +1,17 @@
+[      80ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=ef0d6309:20100
+[  596359ms] TypeError: Cannot read properties of undefined (reading 'match')
+    at extractKey (http://localhost:5173/src/utils/toolArgs.ts?t=1780078993172:12:22)
+    at rawValue (http://localhost:5173/src/utils/toolArgs.ts?t=1780078993172:21:15)
+    at compactToolArg (http://localhost:5173/src/utils/toolArgs.ts?t=1780078993172:86:14)
+    at ToolCallCard (http://localhost:5173/src/components/ToolCallCard.tsx?t=1780078993172:25:19)
+    at Object.react_stack_bottom_frame (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=ef0d6309:18507:20)
+    at renderWithHooks (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=ef0d6309:5652:24)
+    at updateFunctionComponent (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=ef0d6309:7473:21)
+    at beginWork (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=ef0d6309:8523:20)
+    at runWithFiberInDEV (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=ef0d6309:995:72)
+    at performUnitOfWork (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=ef0d6309:12559:98)
+[  596359ms] [WARNING] %s
+
+%s
+ An error occurred in the <ToolCallCard> component. Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://react.dev/link/error-boundaries to learn more about error boundaries. @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=ef0d6309:6963

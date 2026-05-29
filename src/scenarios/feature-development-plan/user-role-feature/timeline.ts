@@ -1,7 +1,6 @@
 import type { TimelineEvent } from "../../../types/scenario";
 
 export const withoutMCP: TimelineEvent[] = [
-  { at: 0, type: "user", text: "Add a Role field to the User model and wire it through auth, API, and the admin UI." },
   { at: 800, type: "assistant", text: "I'll add a Role field to the User struct and update the store methods.", stream: true },
   { at: 2000, type: "tool", name: "read_file", args: "{ path: \"internal/database/user.go\" }", status: "done" },
   { at: 2800, type: "assistant", text: "Done! I've added:\n• Role field to User struct\n• Updated Create/Update to persist role\n• GetByRole query method\n\nYou'll want to add a migration and update auth checks.", stream: true },
@@ -20,7 +19,7 @@ export const withoutMCP: TimelineEvent[] = [
 
 
 export const withMCP: TimelineEvent[] = [
-  { at: 0, type: "user", text: "Add a Role field to the User model and wire it through auth, API, and the admin UI." },
+  { at: 200, type: "assistant", text: "I'll add a Role field to the User struct and update the store methods.", stream: true },
   { at: 500, type: "tool", name: "keyword_search", args: "{ query: \"User struct\" }", status: "running" },
   { at: 1000, type: "tool", name: "keyword_search", args: "{ query: \"User struct\" }", status: "done" },
   { at: 1500, type: "tool", name: "deep_search", args: "{ query: \"Where is user authorization enforced for admin?\" }", status: "running" },

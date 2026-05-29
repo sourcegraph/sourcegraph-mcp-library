@@ -1,9 +1,8 @@
 import type { ColumnState, ExecutionMetrics } from "../types/scenario";
 import { buildLogFilename, downloadLog } from "../utils/downloadLog";
 import { ExecutionMetricsBar } from "./ExecutionMetrics";
-import { MessageStream } from "./MessageStream";
+import { ConversationStream } from "./ConversationStream";
 import { MissedItems } from "./MissedItems";
-import { ToolCallCard } from "./ToolCallCard";
 import "./AgentColumn.css";
 
 interface AgentColumnProps {
@@ -16,6 +15,8 @@ interface AgentColumnProps {
   scenarioId?: string;
   promptId?: string;
   logContent?: string;
+  missedCollapsed: boolean;
+  onToggleMissed: () => void;
 }
 
 export function AgentColumn({
@@ -28,6 +29,8 @@ export function AgentColumn({
   scenarioId,
   promptId,
   logContent,
+  missedCollapsed,
+  onToggleMissed,
 }: AgentColumnProps) {
   const isMcp = variant === "mcp";
   const showMissed =
@@ -86,17 +89,16 @@ export function AgentColumn({
       />
 
       <div className="agent-column__body">
-        <MessageStream
-          userMessages={state.userMessages}
-          assistantMessages={state.assistantMessages}
-        />
-        {state.toolCalls.map((tool) => (
-          <ToolCallCard key={tool.id} tool={tool} />
-        ))}
+        <ConversationStream events={state.events} />
       </div>
 
       {showMissed && (
-        <MissedItems items={state.missedItems} variant={missedVariant} />
+        <MissedItems
+          items={state.missedItems}
+          variant={missedVariant}
+          collapsed={missedCollapsed}
+          onToggle={onToggleMissed}
+        />
       )}
     </div>
   );

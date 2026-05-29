@@ -1,7 +1,6 @@
 import type { TimelineEvent } from "../../../types/scenario";
 
 export const withoutMCP: TimelineEvent[] = [
-  { at: 0, type: "user", text: "What internal services does the VS Code extension host depend on? Map cross-package dependencies." },
   { at: 800, type: "assistant", text: "I'll look at extensionHostProcess.ts in the current workspace.", stream: true },
   { at: 2000, type: "tool", name: "read_file", args: "{ path: \"src/vs/workbench/api/node/extensionHostProcess.ts\" }", status: "done" },
   { at: 3000, type: "assistant", text: "Extension host imports RPC, file service, and telemetry from this package. Dependencies look local to workbench/api.", stream: true },
@@ -19,7 +18,7 @@ export const withoutMCP: TimelineEvent[] = [
 
 
 export const withMCP: TimelineEvent[] = [
-  { at: 0, type: "user", text: "What internal services does the VS Code extension host depend on? Map cross-package dependencies." },
+  { at: 200, type: "assistant", text: "I'll look at extensionHostProcess.ts in the current workspace.", stream: true },
   { at: 500, type: "tool", name: "keyword_search", args: "{ query: \"extensionHostProcess\" }", status: "running" },
   { at: 1100, type: "tool", name: "keyword_search", args: "{ query: \"extensionHostProcess\" }", status: "done" },
   { at: 1400, type: "tool", name: "find_references", args: "{ symbol: \"ExtensionHostMain\" }", status: "done" },

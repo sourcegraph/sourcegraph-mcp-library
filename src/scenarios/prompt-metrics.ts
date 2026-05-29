@@ -39,8 +39,8 @@ export const promptMetrics = {
     withMCP: { timeSeconds: 8 * 60 + 30, costUsd: 1.38 },
   },
   aclCodeAudit: {
-    withoutMCP: { timeSeconds: 163, costUsd: 0.26 },
-    withMCP: { timeSeconds: 145, costUsd: 0.28 },
+    withoutMCP: { timeSeconds: 163, costUsd: 0.26, quality: 0, toolCalls: 483 },
+    withMCP: { timeSeconds: 145, costUsd: 0.28, quality: 1, toolCalls: 42 },
   },
   nextjsLinkRemovalAudit: {
     withoutMCP: { timeSeconds: 45 * 60, costUsd: 0 },

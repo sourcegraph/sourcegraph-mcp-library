@@ -15,9 +15,13 @@ export type TimelineEvent =
 
 export interface ExecutionMetrics {
   /** Wall-clock time to complete the task end-to-end */
-  timeSeconds: number;
+  timeSeconds?: number;
   /** Estimated inference + tooling cost in USD */
-  costUsd: number;
+  costUsd?: number;
+  /** Quality / reward score, 0.0 to 1.0 */
+  quality?: number;
+  /** Total number of tool calls made during the run */
+  toolCalls?: number;
 }
 
 export interface PromptMetrics {
@@ -75,18 +79,21 @@ export interface ToolCall {
   status: ToolStatus;
 }
 
+export type ConversationEvent =
+  | { type: "user"; id: string; text: string }
+  | { type: "assistant"; id: string; text: string; isStreaming?: boolean }
+  | { type: "tool"; id: string; name: string; args: string; status: ToolStatus }
+  | { type: "missed"; items: string[] }
+  | { type: "complete" };
+
 export interface ColumnState {
-  userMessages: UserMessage[];
-  assistantMessages: AssistantMessage[];
-  toolCalls: ToolCall[];
+  events: ConversationEvent[];
   missedItems: string[] | null;
   completed: boolean;
 }
 
 export const emptyColumnState = (): ColumnState => ({
-  userMessages: [],
-  assistantMessages: [],
-  toolCalls: [],
+  events: [],
   missedItems: null,
   completed: false,
 });
@@ -117,6 +124,14 @@ export function formatCost(usd: number): string {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(usd);
+}
+
+export function formatQuality(q: number): string {
+  return q.toFixed(2);
+}
+
+export function formatToolCalls(n: number): string {
+  return n.toLocaleString("en-US");
 }
 
 export function savingsPercent(before: number, after: number): number {

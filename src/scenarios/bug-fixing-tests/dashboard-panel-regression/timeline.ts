@@ -1,7 +1,6 @@
 import type { TimelineEvent } from "../../../types/scenario";
 
 export const withoutMCP: TimelineEvent[] = [
-  { at: 0, type: "user", text: "Dashboard panels disappear after upgrade from 10.2 to 10.3. Fix the regression." },
   { at: 900, type: "assistant", text: "Likely a frontend rendering bug. I'll patch the panel list component to filter null entries.", stream: true },
   { at: 2200, type: "tool", name: "read_file", args: "{ path: \"public/app/features/dashboard/.../PanelList.tsx\" }", status: "done" },
   { at: 3200, type: "assistant", text: "Added null guard in PanelList. Updated one unit test. This should stop panels from disappearing in the UI.", stream: true },
@@ -19,7 +18,7 @@ export const withoutMCP: TimelineEvent[] = [
 
 
 export const withMCP: TimelineEvent[] = [
-  { at: 0, type: "user", text: "Dashboard panels disappear after upgrade from 10.2 to 10.3. Fix the regression." },
+  { at: 200, type: "assistant", text: "Likely a frontend rendering bug. I'll patch the panel list component to filter null entries.", stream: true },
   { at: 500, type: "tool", name: "diff_search", args: "{ query: \"panel migration 10.3\" }", status: "running" },
   { at: 1100, type: "tool", name: "diff_search", args: "{ query: \"panel migration 10.3\" }", status: "done" },
   { at: 1400, type: "tool", name: "keyword_search", args: "{ query: \"processPanels\" }", status: "done" },

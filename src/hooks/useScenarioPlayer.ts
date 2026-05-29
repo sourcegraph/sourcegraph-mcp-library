@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   ColumnState,
+  ConversationEvent,
   ScenarioPrompt,
   TimelineEvent,
-  ToolCall,
 } from "../types/scenario";
 import { emptyColumnState } from "../types/scenario";
 
@@ -15,50 +15,58 @@ function applyEvent(state: ColumnState, event: TimelineEvent): ColumnState {
   const next = { ...state };
 
   switch (event.type) {
-    case "user":
-      next.userMessages = [
-        ...next.userMessages,
-        { id: `user-${event.at}`, text: event.text },
-      ];
+    case "user": {
+      const convEvent: ConversationEvent = {
+        type: "user",
+        id: `user-${event.at}`,
+        text: event.text,
+      };
+      next.events = [...next.events, convEvent];
       break;
-    case "assistant":
-      next.assistantMessages = [
-        ...next.assistantMessages,
-        {
-          id: `asst-${event.at}`,
-          text: event.text,
-          isStreaming: event.stream ?? false,
-        },
-      ];
+    }
+    case "assistant": {
+      const convEvent: ConversationEvent = {
+        type: "assistant",
+        id: `asst-${event.at}`,
+        text: event.text,
+        isStreaming: event.stream ?? false,
+      };
+      next.events = [...next.events, convEvent];
       break;
+    }
     case "tool": {
-      const existing = next.toolCalls.findIndex(
-        (t) => t.name === event.name && t.args === event.args,
-      );
-      const tool: ToolCall = {
+      const convEvent: ConversationEvent = {
+        type: "tool",
         id: `tool-${event.at}-${event.name}`,
         name: event.name,
         args: event.args,
         status: event.status ?? "done",
       };
+      const existing = next.events.findIndex(
+        (e) =>
+          e.type === "tool" &&
+          e.name === event.name &&
+          e.args === event.args,
+      );
       if (existing >= 0) {
-        const updated = [...next.toolCalls];
-        updated[existing] = tool;
-        next.toolCalls = updated;
+        const updated = [...next.events];
+        updated[existing] = convEvent;
+        next.events = updated;
       } else {
-        next.toolCalls = [...next.toolCalls, tool];
+        next.events = [...next.events, convEvent];
       }
       break;
     }
     case "missed":
       next.missedItems = event.items;
+      next.events = [...next.events, { type: "missed", items: event.items }];
       break;
     case "complete":
       next.completed = true;
-      next.assistantMessages = next.assistantMessages.map((m) => ({
-        ...m,
-        isStreaming: false,
-      }));
+      next.events = next.events.map((e) =>
+        e.type === "assistant" ? { ...e, isStreaming: false } : e,
+      );
+      next.events = [...next.events, { type: "complete" }];
       break;
   }
 
@@ -77,16 +85,20 @@ function streamAssistantText(
     const partial = fullText.slice(0, index);
     setState((prev) => ({
       ...prev,
-      assistantMessages: prev.assistantMessages.map((m) =>
-        m.id === messageId ? { ...m, text: partial } : m,
+      events: prev.events.map((e) =>
+        e.type === "assistant" && e.id === messageId
+          ? { ...e, text: partial }
+          : e,
       ),
     }));
     if (index >= fullText.length) {
       clearInterval(interval);
       setState((prev) => ({
         ...prev,
-        assistantMessages: prev.assistantMessages.map((m) =>
-          m.id === messageId ? { ...m, text: fullText, isStreaming: false } : m,
+        events: prev.events.map((e) =>
+          e.type === "assistant" && e.id === messageId
+            ? { ...e, text: fullText, isStreaming: false }
+            : e,
         ),
       }));
     }
@@ -154,17 +166,15 @@ export function useScenarioPlayer(prompt: ScenarioPrompt | null) {
             );
             if (reducedMotion) {
               clearInterval(interval);
-              setState((prev) =>
-                applyEvent(
-                  {
-                    ...prev,
-                    assistantMessages: prev.assistantMessages.filter(
-                      (m) => m.id !== messageId,
-                    ),
-                  },
-                  event,
-                ),
-              );
+              setState((prev) => {
+                const filtered = {
+                  ...prev,
+                  events: prev.events.filter(
+                    (e) => !("id" in e) || e.id !== messageId,
+                  ),
+                };
+                return applyEvent(filtered, event);
+              });
             } else {
               intervalsRef.current.push(interval);
             }

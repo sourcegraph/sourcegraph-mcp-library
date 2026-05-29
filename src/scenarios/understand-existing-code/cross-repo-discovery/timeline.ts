@@ -1,7 +1,6 @@
 import type { TimelineEvent } from "../../../types/scenario";
 
 export const withoutMCP: TimelineEvent[] = [
-  { at: 0, type: "user", text: "How does Settings Sync handle three-way merge conflicts when the same setting is changed locally and remotely?" },
   { at: 800, type: "assistant", text: "I'll search the workspace for merge-related code.", stream: true },
   { at: 2200, type: "tool", name: "read_file", args: "{ path: \"src/vs/platform/settingsSync/common/settingsMerge.ts\" }", status: "running" },
   { at: 2800, type: "tool", name: "read_file", args: "{ path: \"src/vs/platform/settingsSync/common/settingsMerge.ts\" }", status: "done" },
@@ -21,7 +20,7 @@ export const withoutMCP: TimelineEvent[] = [
 
 
 export const withMCP: TimelineEvent[] = [
-  { at: 0, type: "user", text: "How does Settings Sync handle three-way merge conflicts when the same setting is changed locally and remotely?" },
+  { at: 200, type: "assistant", text: "I'll search the workspace for merge-related code.", stream: true },
   { at: 600, type: "tool", name: "keyword_search", args: "{ query: \"three-way merge\" }", status: "running" },
   { at: 1200, type: "tool", name: "keyword_search", args: "{ query: \"three-way merge\" }", status: "done" },
   { at: 1600, type: "tool", name: "keyword_search", args: "{ query: \"Settings Sync merge conflicts\" }", status: "running" },

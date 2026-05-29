@@ -1,7 +1,6 @@
 import type { TimelineEvent } from "../../../types/scenario";
 
 export const withoutMCP: TimelineEvent[] = [
-  { at: 0, type: "user", text: "Add a retry wrapper for RPC calls in our new streaming connector. Match existing patterns in the codebase." },
   { at: 900, type: "assistant", text: "I'll implement a simple retry loop with exponential backoff in the connector package.", stream: true },
   { at: 2500, type: "tool", name: "read_file", args: "{ path: \"flink-connectors/.../RpcClient.java\" }", status: "done" },
   { at: 3500, type: "assistant", text: "Done. Added `RetryingRpcClient` with 3 attempts and 100ms base delay in the connector module.", stream: true },
@@ -19,7 +18,7 @@ export const withoutMCP: TimelineEvent[] = [
 
 
 export const withMCP: TimelineEvent[] = [
-  { at: 0, type: "user", text: "Add a retry wrapper for RPC calls in our new streaming connector. Match existing patterns in the codebase." },
+  { at: 200, type: "assistant", text: "I'll implement a simple retry loop with exponential backoff in the connector package.", stream: true },
   { at: 600, type: "tool", name: "keyword_search", args: "{ query: \"RetryStrategy RPC\" }", status: "running" },
   { at: 1100, type: "tool", name: "keyword_search", args: "{ query: \"RetryStrategy RPC\" }", status: "done" },
   { at: 1400, type: "tool", name: "keyword_search", args: "{ query: \"@Deprecated retry\" }", status: "done" },

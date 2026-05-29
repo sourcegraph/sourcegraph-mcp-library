@@ -1,0 +1,123 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - img [ref=e6]
+      - generic [ref=e9]: Sourcegraph
+    - generic [ref=e10]:
+      - heading "Code context for any AI agent" [level=1] [ref=e11]
+      - paragraph [ref=e12]: Sourcegraph MCP Use cases
+    - generic [ref=e13]: Demo
+  - main [ref=e14]:
+    - complementary [ref=e15]:
+      - heading "Use cases" [level=2] [ref=e16]
+      - paragraph [ref=e17]: Press 1–7 to switch
+      - list [ref=e18]:
+        - listitem [ref=e19]:
+          - button "1 Understanding existing code Explore unfamiliar codebases 3 demos" [ref=e20] [cursor=pointer]:
+            - generic [ref=e21]: "1"
+            - generic [ref=e22]:
+              - generic [ref=e23]: Understanding existing code
+              - generic [ref=e24]: Explore unfamiliar codebases
+              - generic [ref=e26]: 3 demos
+        - listitem [ref=e27]:
+          - button "2 Code reuse & consistency Consistency and quality across the codebase 1 demo mono-repo" [ref=e28] [cursor=pointer]:
+            - generic [ref=e29]: "2"
+            - generic [ref=e30]:
+              - generic [ref=e31]: Code reuse & consistency
+              - generic [ref=e32]: Consistency and quality across the codebase
+              - generic [ref=e33]:
+                - generic [ref=e34]: 1 demo
+                - generic [ref=e35]: mono-repo
+        - listitem [ref=e36]:
+          - button "3 Feature development Plan mode & implementation planning with Deep Search 1 demo mono-repo" [ref=e37] [cursor=pointer]:
+            - generic [ref=e38]: "3"
+            - generic [ref=e39]:
+              - generic [ref=e40]: Feature development
+              - generic [ref=e41]: Plan mode & implementation planning with Deep Search
+              - generic [ref=e42]:
+                - generic [ref=e43]: 1 demo
+                - generic [ref=e44]: mono-repo
+        - listitem [ref=e45]:
+          - button "4 Bug fixing & tests Root-cause fix with test coverage 1 demo mono-repo" [ref=e46] [cursor=pointer]:
+            - generic [ref=e47]: "4"
+            - generic [ref=e48]:
+              - generic [ref=e49]: Bug fixing & tests
+              - generic [ref=e50]: Root-cause fix with test coverage
+              - generic [ref=e51]:
+                - generic [ref=e52]: 1 demo
+                - generic [ref=e53]: mono-repo
+        - listitem [ref=e54]:
+          - button "5 Investigating an incident Trace regressions across services 1 demo multi-repo" [ref=e55] [cursor=pointer]:
+            - generic [ref=e56]: "5"
+            - generic [ref=e57]:
+              - generic [ref=e58]: Investigating an incident
+              - generic [ref=e59]: Trace regressions across services
+              - generic [ref=e60]:
+                - generic [ref=e61]: 1 demo
+                - generic [ref=e62]: multi-repo
+        - listitem [ref=e63]:
+          - button "6 Security Authorization risks & vulnerability discovery 2 demos" [ref=e64] [cursor=pointer]:
+            - generic [ref=e65]: "6"
+            - generic [ref=e66]:
+              - generic [ref=e67]: Security
+              - generic [ref=e68]: Authorization risks & vulnerability discovery
+              - generic [ref=e70]: 2 demos
+        - listitem [ref=e71]:
+          - button "7 Audit Access mapping & compliance trail coverage 1 demo mono-repo" [ref=e72] [cursor=pointer]:
+            - generic [ref=e73]: "7"
+            - generic [ref=e74]:
+              - generic [ref=e75]: Audit
+              - generic [ref=e76]: Access mapping & compliance trail coverage
+              - generic [ref=e77]:
+                - generic [ref=e78]: 1 demo
+                - generic [ref=e79]: mono-repo
+    - generic [ref=e80]:
+      - tablist "Demo categories" [ref=e81]:
+        - tab "ACL authorization bypass risks mono-repo" [ref=e131] [cursor=pointer]:
+          - generic [ref=e132]: ACL authorization bypass risks
+          - generic [ref=e133]: mono-repo
+        - tab "ACL authorization code audit multi-repo" [active] [selected] [ref=e134] [cursor=pointer]:
+          - generic [ref=e135]: ACL authorization code audit
+          - generic [ref=e136]: multi-repo
+      - paragraph [ref=e93]: Find all Java source files in apache/kafka that implement or define Access Control List (ACL) authorization logic. For each file, report the class name and whether it defines the interface, implements it, or provides utilities.
+      - generic [ref=e94]:
+        - generic [ref=e95]:
+          - generic [ref=e96]:
+            - generic [ref=e97]:
+              - heading "Agent" [level=3] [ref=e98]
+              - button "Download log" [ref=e99] [cursor=pointer]
+            - link "apache/kafka" [ref=e137] [cursor=pointer]:
+              - /url: https://github.com/apache/kafka
+          - generic "Time 2m 43s, cost $0.26" [ref=e193]:
+            - generic [ref=e102]:
+              - generic [ref=e103]: Time
+              - generic [ref=e104]: 2m 43s
+            - generic [ref=e106]:
+              - generic [ref=e107]: Cost
+              - generic [ref=e108]: $0.26
+          - paragraph [ref=e195]:
+            - text: I'll search the local workspace for files with Auth
+            - generic [ref=e196]: "|"
+        - generic [ref=e112]:
+          - generic [ref=e113]:
+            - generic [ref=e114]:
+              - heading "Agent + Sourcegraph MCP" [level=3] [ref=e115]
+              - generic [ref=e116]:
+                - generic [ref=e117]: sg
+                - text: mcp
+              - button "Download log" [ref=e118] [cursor=pointer]
+            - link "apache/kafka" [ref=e146] [cursor=pointer]:
+              - /url: https://github.com/apache/kafka
+          - generic "Time 2m 25s, cost $0.28" [ref=e197]:
+            - generic [ref=e121]:
+              - generic [ref=e122]: Time
+              - generic [ref=e123]: 2m 25s
+            - generic [ref=e125]:
+              - generic [ref=e126]: Cost
+              - generic [ref=e127]: $0.28
+          - generic [ref=e129]:
+            - paragraph [ref=e199]: I'll search the local workspace for files with Authorizer or Acl in their names under clients/src/main and core/src/main.
+            - 'generic "sg_keyword_search { query: \"repo:^github.com/sg-evals/kafka--0753c489$ file:(core/src/main|clients/src/main) (Authorizer OR AclAuthorizer)\" }" [ref=e200]':
+              - generic [ref=e201]: sg_keyword_search
+              - generic [ref=e202]: "{ query: \"repo:^github.com/sg-evals/kafka--0753c489$ file:(core/src/main|clients/src/main) (Authorizer OR AclAuthorizer)\" }"
+              - generic "running" [ref=e203]

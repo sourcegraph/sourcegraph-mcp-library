@@ -1,7 +1,6 @@
 import type { TimelineEvent } from "../../../types/scenario";
 
 export const withoutMCP: TimelineEvent[] = [
-  { at: 0, type: "user", text: "Find all Java source files in apache/kafka that implement or define Access Control List (ACL) authorization logic. For each file, report the class name and whether it defines the interface, implements it, or provides utilities." },
   { at: 700, type: "assistant", text: "I'll search the local workspace for files with Authorizer or Acl in their names under clients/src/main and core/src/main.", stream: true },
   { at: 1800, type: "tool", name: "Bash", args: "{ command: \"find /workspace/kafka--0753c489/clients/src/main -name '*Authorizer*.java' -o -name '*Acl*.java'\" }", status: "done" },
   { at: 2400, type: "tool", name: "Bash", args: "{ command: \"find /workspace/kafka--0753c489/core/src/main -name '*Authorizer*.java' -o -name '*Acl*.java'\" }", status: "done" },
@@ -25,7 +24,7 @@ export const withoutMCP: TimelineEvent[] = [
 ];
 
 export const withMCP: TimelineEvent[] = [
-  { at: 0, type: "user", text: "Find all Java source files in apache/kafka that implement or define Access Control List (ACL) authorization logic. For each file, report the class name and whether it defines the interface, implements it, or provides utilities." },
+  { at: 200, type: "assistant", text: "I'll search the local workspace for files with Authorizer or Acl in their names under clients/src/main and core/src/main.", stream: true },
   { at: 500, type: "tool", name: "sg_keyword_search", args: "{ query: \"repo:^github.com/sg-evals/kafka--0753c489$ file:(core/src/main|clients/src/main) (Authorizer OR AclAuthorizer)\" }", status: "running" },
   { at: 1100, type: "tool", name: "sg_keyword_search", args: "{ query: \"repo:^github.com/sg-evals/kafka--0753c489$ file:(core/src/main|clients/src/main) (Authorizer OR AclAuthorizer)\" }", status: "done" },
   { at: 1700, type: "tool", name: "sg_nls_search", args: "{ query: \"repo:^github.com/sg-evals/kafka--0753c489$ file:(core/src/main|clients/src/main) class.*Authorizer implements interface\" }", status: "done" },

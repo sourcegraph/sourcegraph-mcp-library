@@ -1,7 +1,6 @@
 import type { TimelineEvent } from "../../../types/scenario";
 
 export const withoutMCP: TimelineEvent[] = [
-  { at: 0, type: "user", text: "Audit who can perform ADMIN on topic billing-events. Verify all access paths are logged for SOC2 compliance." },
   { at: 900, type: "assistant", text: "Reading the ACL file and listing principals with ADMIN…", stream: true },
   { at: 2000, type: "tool", name: "read_file", args: "{ path: \"config/acls/billing-events.json\" }", status: "done" },
   { at: 3000, type: "assistant", text: "ACL audit: `billing-admins` has ADMIN on billing-events. Config matches policy doc.", stream: true },
@@ -19,7 +18,7 @@ export const withoutMCP: TimelineEvent[] = [
 
 
 export const withMCP: TimelineEvent[] = [
-  { at: 0, type: "user", text: "Audit who can perform ADMIN on topic billing-events. Verify all access paths are logged for SOC2 compliance." },
+  { at: 200, type: "assistant", text: "Reading the ACL file and listing principals with ADMIN…", stream: true },
   { at: 500, type: "tool", name: "keyword_search", args: "{ query: \"AclAuthorizer ADMIN billing\" }", status: "running" },
   { at: 1000, type: "tool", name: "keyword_search", args: "{ query: \"AclAuthorizer ADMIN billing\" }", status: "done" },
   { at: 1400, type: "tool", name: "keyword_search", args: "{ query: \"auditLog authorize\" }", status: "done" },

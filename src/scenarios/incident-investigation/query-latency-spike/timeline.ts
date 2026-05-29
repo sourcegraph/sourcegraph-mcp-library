@@ -1,7 +1,6 @@
 import type { TimelineEvent } from "../../../types/scenario";
 
 export const withoutMCP: TimelineEvent[] = [
-  { at: 0, type: "user", text: "P99 latency spiked on /api/ds/query after last night's deploy. Find what changed." },
   { at: 900, type: "assistant", text: "Checking recent deploy logs and the query handler in this repo…", stream: true },
   { at: 2200, type: "tool", name: "read_file", args: "{ path: \"pkg/api/ds/query.go\" }", status: "done" },
   { at: 3200, type: "assistant", text: "Added a timeout bump in query.go. Recommend rolling back deploy #4821 and monitoring.", stream: true },
@@ -19,7 +18,7 @@ export const withoutMCP: TimelineEvent[] = [
 
 
 export const withMCP: TimelineEvent[] = [
-  { at: 0, type: "user", text: "P99 latency spiked on /api/ds/query after last night's deploy. Find what changed." },
+  { at: 200, type: "assistant", text: "Checking recent deploy logs and the query handler in this repo…", stream: true },
   { at: 500, type: "tool", name: "diff_search", args: "{ rev: \"deploy/4820..4821\", path: \"**/ds/**\" }", status: "running" },
   { at: 1200, type: "tool", name: "diff_search", args: "{ rev: \"deploy/4820..4821\", path: \"**/ds/**\" }", status: "done" },
   { at: 1500, type: "tool", name: "keyword_search", args: "{ query: \"QueryData batch\" }", status: "done" },

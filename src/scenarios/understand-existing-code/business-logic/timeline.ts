@@ -1,7 +1,6 @@
 import type { TimelineEvent } from "../../../types/scenario";
 
 export const withoutMCP: TimelineEvent[] = [
-  { at: 0, type: "user", text: "What business rules determine when an extension is blocked in Restricted Mode vs allowed in a Trusted workspace?" },
   { at: 800, type: "assistant", text: "I'll check workspaceTrustService.ts for trust checks.", stream: true },
   { at: 2100, type: "tool", name: "read_file", args: "{ path: \"src/vs/workbench/services/workspaces/common/workspaceTrust.ts\" }", status: "done" },
   { at: 3100, type: "assistant", text: "Trust is stored per workspace folder. Extensions with `untrustedWorkspaces` in package.json are disabled when trust is off.", stream: true },
@@ -19,7 +18,7 @@ export const withoutMCP: TimelineEvent[] = [
 
 
 export const withMCP: TimelineEvent[] = [
-  { at: 0, type: "user", text: "What business rules determine when an extension is blocked in Restricted Mode vs allowed in a Trusted workspace?" },
+  { at: 200, type: "assistant", text: "I'll check workspaceTrustService.ts for trust checks.", stream: true },
   { at: 500, type: "tool", name: "keyword_search", args: "{ query: \"untrustedWorkspaces supported\" }", status: "running" },
   { at: 1100, type: "tool", name: "keyword_search", args: "{ query: \"untrustedWorkspaces supported\" }", status: "done" },
   { at: 1400, type: "tool", name: "find_references", args: "{ symbol: \"WorkspaceTrustManagementService\" }", status: "done" },

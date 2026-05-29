@@ -1,7 +1,6 @@
 import type { TimelineEvent } from "../../../types/scenario";
 
 export const withoutMCP: TimelineEvent[] = [
-  { at: 0, type: "user", text: "Is Kafka ACL authorization bypassable for topic billing-events? Find security risks in the authorizer chain." },
   { at: 900, type: "assistant", text: "I'll check the ACL config for billing-events.", stream: true },
   { at: 2000, type: "tool", name: "read_file", args: "{ path: \"config/acls/billing-events.json\" }", status: "done" },
   { at: 3000, type: "assistant", text: "ACL looks fine — `billing-admins` has ADMIN. No obvious bypass in the config file.", stream: true },
@@ -19,7 +18,7 @@ export const withoutMCP: TimelineEvent[] = [
 
 
 export const withMCP: TimelineEvent[] = [
-  { at: 0, type: "user", text: "Is Kafka ACL authorization bypassable for topic billing-events? Find security risks in the authorizer chain." },
+  { at: 200, type: "assistant", text: "I'll check the ACL config for billing-events.", stream: true },
   { at: 500, type: "tool", name: "keyword_search", args: "{ query: \"AuthorizerChain bypass\" }", status: "running" },
   { at: 1000, type: "tool", name: "keyword_search", args: "{ query: \"AuthorizerChain bypass\" }", status: "done" },
   { at: 1300, type: "tool", name: "go_to_definition", args: "{ symbol: \"StandardAuthorizer\" }", status: "done" },
