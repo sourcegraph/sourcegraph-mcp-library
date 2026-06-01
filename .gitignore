@@ -12,3 +12,4 @@ frontend/build/
 dist/
 .claude/settings.local.json
 .claude-example/settings.json
+.playwright-mcp/

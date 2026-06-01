@@ -42,8 +42,4 @@ export const promptMetrics = {
     withoutMCP: { timeSeconds: 163, costUsd: 0.26, quality: 0, toolCalls: 483 },
     withMCP: { timeSeconds: 145, costUsd: 0.28, quality: 1, toolCalls: 42 },
   },
-  nextjsLinkRemovalAudit: {
-    withoutMCP: { timeSeconds: 45 * 60, costUsd: 0 },
-    withMCP: { timeSeconds: 30 * 60, costUsd: 0 },
-  },
 } as const satisfies Record<string, PromptMetrics>;

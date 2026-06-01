@@ -10,7 +10,6 @@ export type TimelineEvent =
       args: string;
       status?: ToolStatus;
     }
-  | { at: number; type: "missed"; items: string[] }
   | { at: number; type: "complete" };
 
 export interface ExecutionMetrics {
@@ -38,6 +37,18 @@ export interface ScenarioPromptLogs {
   withMCP: string;
 }
 
+/**
+ * A single dimension/row in the post-run quality breakdown table.
+ * Values are free-form strings so authors can mix percentages, fractions,
+ * qualitative labels, and unicode indicators (✓ / ✕ / ❌ / ✅) freely.
+ */
+export interface QualityBreakdownRow {
+  dimension: string;
+  baseline: string;
+  mcp: string;
+  notes?: string;
+}
+
 export interface ScenarioPrompt {
   id: string;
   /** Short label for the demo picker in the sidebar */
@@ -50,6 +61,8 @@ export interface ScenarioPrompt {
   withMCP: TimelineEvent[];
   /** Live execution logs for download (manually added to the repo) */
   logs: ScenarioPromptLogs;
+  /** Optional side-by-side scoring table shown below the two agent columns. */
+  qualityBreakdown?: QualityBreakdownRow[];
 }
 
 export interface Scenario {
@@ -61,40 +74,19 @@ export interface Scenario {
   prompts: ScenarioPrompt[];
 }
 
-export interface UserMessage {
-  id: string;
-  text: string;
-}
-
-export interface AssistantMessage {
-  id: string;
-  text: string;
-  isStreaming?: boolean;
-}
-
-export interface ToolCall {
-  id: string;
-  name: string;
-  args: string;
-  status: ToolStatus;
-}
-
 export type ConversationEvent =
   | { type: "user"; id: string; text: string }
   | { type: "assistant"; id: string; text: string; isStreaming?: boolean }
   | { type: "tool"; id: string; name: string; args: string; status: ToolStatus }
-  | { type: "missed"; items: string[] }
   | { type: "complete" };
 
 export interface ColumnState {
   events: ConversationEvent[];
-  missedItems: string[] | null;
   completed: boolean;
 }
 
 export const emptyColumnState = (): ColumnState => ({
   events: [],
-  missedItems: null,
   completed: false,
 });
 

@@ -1,15 +1,17 @@
-import { useEffect, useRef, useState } from "react";
-import type { ToolCall } from "../types/scenario";
+import { memo, useEffect, useRef, useState } from "react";
+import type { ToolStatus } from "../types/scenario";
 import { compactToolArg, extractArgValue } from "../utils/toolArgs";
 import "./ToolCallCard.css";
 
 interface ToolCallCardProps {
-  tool: ToolCall;
+  name: string;
+  args: string;
+  status: ToolStatus;
 }
 
 const COPYABLE_TOOLS = new Set(["keyword_search", "sg_keyword_search"]);
 
-export function ToolCallCard({ tool }: ToolCallCardProps) {
+function ToolCallCardImpl({ name, args, status }: ToolCallCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
   const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -20,10 +22,10 @@ export function ToolCallCard({ tool }: ToolCallCardProps) {
     };
   }, []);
 
-  const isRunning = tool.status === "running";
-  const compact = compactToolArg(tool.name, tool.args);
-  const copyableQuery = COPYABLE_TOOLS.has(tool.name)
-    ? extractArgValue(tool.args, "query")
+  const isRunning = status === "running";
+  const compact = compactToolArg(name, args);
+  const copyableQuery = COPYABLE_TOOLS.has(name)
+    ? extractArgValue(args, "query")
     : null;
 
   const handleCopy = async () => {
@@ -51,10 +53,10 @@ export function ToolCallCard({ tool }: ToolCallCardProps) {
         onClick={() => setExpanded((e) => !e)}
       >
         <span className="tool-card__name">
-          {tool.name.replace(/^sg_/, "")}
+          {name.replace(/^sg_/, "")}
         </span>
         <span className="tool-card__args">
-          {expanded ? tool.args : compact}
+          {expanded ? args : compact}
         </span>
         {isRunning && <span className="tool-card__dot" aria-label="running" />}
       </button>
@@ -103,3 +105,5 @@ export function ToolCallCard({ tool }: ToolCallCardProps) {
     </div>
   );
 }
+
+export const ToolCallCard = memo(ToolCallCardImpl);

@@ -55,6 +55,7 @@ export function ExecutionMetricsBar({
     <div
       className={`execution-metrics ${visible ? "execution-metrics--visible" : ""}`}
       aria-label={ariaLabel}
+      aria-hidden={!visible}
     >
       {items.map((item, idx) => (
         <Fragment key={item.label}>

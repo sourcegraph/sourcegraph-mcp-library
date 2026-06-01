@@ -1,8 +1,8 @@
+import { memo } from "react";
 import type { ColumnState, ExecutionMetrics } from "../types/scenario";
 import { buildLogFilename, downloadLog } from "../utils/downloadLog";
 import { ExecutionMetricsBar } from "./ExecutionMetrics";
 import { ConversationStream } from "./ConversationStream";
-import { MissedItems } from "./MissedItems";
 import "./AgentColumn.css";
 
 interface AgentColumnProps {
@@ -15,11 +15,9 @@ interface AgentColumnProps {
   scenarioId?: string;
   promptId?: string;
   logContent?: string;
-  missedCollapsed: boolean;
-  onToggleMissed: () => void;
 }
 
-export function AgentColumn({
+function AgentColumnImpl({
   title,
   variant,
   state,
@@ -29,15 +27,8 @@ export function AgentColumn({
   scenarioId,
   promptId,
   logContent,
-  missedCollapsed,
-  onToggleMissed,
 }: AgentColumnProps) {
   const isMcp = variant === "mcp";
-  const showMissed =
-    state.missedItems &&
-    state.missedItems.length > 0 &&
-    (!isMcp || state.completed);
-  const missedVariant = isMcp ? "complete" : "missed";
   const canDownloadLog = Boolean(scenarioId && promptId && logContent);
 
   const handleDownloadLog = () => {
@@ -91,15 +82,8 @@ export function AgentColumn({
       <div className="agent-column__body">
         <ConversationStream events={state.events} />
       </div>
-
-      {showMissed && (
-        <MissedItems
-          items={state.missedItems}
-          variant={missedVariant}
-          collapsed={missedCollapsed}
-          onToggle={onToggleMissed}
-        />
-      )}
     </div>
   );
 }
+
+export const AgentColumn = memo(AgentColumnImpl);

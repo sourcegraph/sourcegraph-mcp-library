@@ -1,5 +1,5 @@
 .conversation-stream {
-  padding: 16px 0;
+  padding: 0 0 16px;
   flex: 1;
   overflow-y: auto;
 }
@@ -16,16 +16,6 @@
 .conversation-item {
   padding: 12px 16px;
   animation: fadeSlideIn 250ms ease;
-}
-
-.conversation-item__label {
-  display: block;
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-secondary);
-  margin-bottom: 6px;
 }
 
 .conversation-item--user .conversation-item__text {
@@ -54,13 +44,6 @@
   animation: blink 1s step-end infinite;
   margin-left: 1px;
   font-weight: 300;
-}
-
-.conversation-item--info {
-  padding: 12px 16px;
-  color: var(--text-muted);
-  font-size: var(--font-size-sm);
-  font-style: italic;
 }
 
 @keyframes fadeSlideIn {

@@ -4,13 +4,6 @@ export const withoutMCP: TimelineEvent[] = [
   { at: 900, type: "assistant", text: "Checking recent deploy logs and the query handler in this repo…", stream: true },
   { at: 2200, type: "tool", name: "read_file", args: "{ path: \"pkg/api/ds/query.go\" }", status: "done" },
   { at: 3200, type: "assistant", text: "Added a timeout bump in query.go. Recommend rolling back deploy #4821 and monitoring.", stream: true },
-  { at: 5200, type: "missed", items: [
-      "Datasource proxy — new connection pool default",
-      "Plugin SDK bump — breaking change in batch API",
-      "Cache layer — TTL regression in shared lib",
-      "Feature flag — experimental query path enabled",
-      "Cross-repo: loki datasource adapter change",
-    ] },
   { at: 5700, type: "complete" },
 ];
 
@@ -25,12 +18,5 @@ export const withMCP: TimelineEvent[] = [
   { at: 2100, type: "tool", name: "read_file", args: "{ path: \"pkg/services/query/cache.go\" }", status: "done" },
   { at: 2500, type: "tool", name: "commit_search", args: "{ message: \"plugin-sdk\" }", status: "done" },
   { at: 3100, type: "assistant", text: "Incident timeline:\n• 22:14 — plugin-sdk 2.1.0 bumped (batch API signature)\n• 22:31 — cache TTL 5m → 30s in shared query path\n• 23:02 — feature flag `query.experimental` enabled for 12%\n\nPrimary: cache TTL regression. Secondary: SDK adapter not updated in loki plugin.", stream: true },
-  { at: 6400, type: "missed", items: [
-      "Datasource proxy — pool change identified",
-      "Plugin SDK — adapter fix scoped",
-      "Cache layer — TTL restored",
-      "Feature flag — rollout halted",
-      "Loki adapter — cross-repo PR linked",
-    ] },
   { at: 6900, type: "complete" },
 ];

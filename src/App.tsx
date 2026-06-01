@@ -54,9 +54,13 @@ export default function App() {
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
+      // Don't hijack browser/OS shortcuts like Cmd+1 / Ctrl+1.
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
       if (
         e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement
+        e.target instanceof HTMLTextAreaElement ||
+        e.target instanceof HTMLSelectElement ||
+        (e.target instanceof HTMLElement && e.target.isContentEditable)
       ) {
         return;
       }
