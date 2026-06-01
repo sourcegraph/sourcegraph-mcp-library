@@ -1,10 +1,10 @@
-.message-stream {
-  padding: 16px 0;
+.conversation-stream {
+  padding: 0 0 16px;
   flex: 1;
   overflow-y: auto;
 }
 
-.message-stream--empty {
+.conversation-stream--empty {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -13,30 +13,12 @@
   font-size: var(--font-size-md);
 }
 
-.message {
+.conversation-item {
   padding: 12px 16px;
   animation: fadeSlideIn 250ms ease;
 }
 
-.message__label {
-  display: block;
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-muted);
-  margin-bottom: 6px;
-}
-
-.message--user .message__label {
-  color: var(--text-secondary);
-}
-
-.message--assistant .message__label {
-  color: var(--text-secondary);
-}
-
-.message--user .message__text {
+.conversation-item--user .conversation-item__text {
   background-color: color-mix(in oklch, var(--bg-inset), var(--bg-card-hover));
   border-radius: var(--radius-md);
   padding: 10px 16px;
@@ -45,22 +27,34 @@
   line-height: var(--line-height-tight);
 }
 
-.message--assistant .message__text {
+.conversation-item--assistant .conversation-item__text {
   font-size: var(--font-size-base);
   line-height: var(--line-height-normal);
   color: var(--text-agent);
 }
 
-.message__text {
+.conversation-item__text {
   white-space: pre-wrap;
+  margin: 0;
 }
 
-.message__cursor {
+.conversation-item__cursor {
   display: inline-block;
   color: var(--text-primary);
   animation: blink 1s step-end infinite;
   margin-left: 1px;
   font-weight: 300;
+}
+
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes blink {

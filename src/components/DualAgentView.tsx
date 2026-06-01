@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useState } from "react";
 import type { ColumnState, Scenario, ScenarioPrompt } from "../types/scenario";
 import {
   formatCost,
@@ -6,6 +7,7 @@ import {
 } from "../types/scenario";
 import { AgentColumn } from "./AgentColumn";
 import { DemoTabs } from "./DemoTabs";
+import { QualityBreakdown } from "./QualityBreakdown";
 import "./DualAgentView.css";
 
 interface DualAgentViewProps {
@@ -27,24 +29,43 @@ export function DualAgentView({
   withState,
   isPlaying,
 }: DualAgentViewProps) {
-  const showSavings =
-    activePrompt &&
-    withoutState.completed &&
-    withState.completed &&
-    !isPlaying;
+  // Synced collapse state for the Quality Breakdown panel below the columns.
+  // Defaults to collapsed; resets to collapsed whenever the active prompt changes.
+  const [breakdownCollapsed, setBreakdownCollapsed] = useState(true);
+  useEffect(() => {
+    setBreakdownCollapsed(true);
+  }, [activePromptId]);
+  const handleToggleBreakdown = useCallback(() => {
+    setBreakdownCollapsed((c) => !c);
+  }, []);
 
-  const timeSaved = activePrompt
-    ? savingsPercent(
-        activePrompt.metrics.withoutMCP.timeSeconds,
-        activePrompt.metrics.withMCP.timeSeconds,
-      )
-    : 0;
-  const costSaved = activePrompt
-    ? savingsPercent(
-        activePrompt.metrics.withoutMCP.costUsd,
-        activePrompt.metrics.withMCP.costUsd,
-      )
-    : 0;
+  const withoutMetrics = activePrompt?.metrics.withoutMCP;
+  const withMetrics = activePrompt?.metrics.withMCP;
+
+  const bothCompleted =
+    withoutState.completed && withState.completed && !isPlaying;
+
+  // Only surface a "savings" call-out when MCP actually improved the metric.
+  // Negative savings (MCP slower or more expensive) would read as "-8% lower
+  // cost", which is contradictory, so we omit that dimension instead.
+  const timeSaved =
+    withoutMetrics?.timeSeconds !== undefined &&
+    withMetrics?.timeSeconds !== undefined
+      ? savingsPercent(withoutMetrics.timeSeconds, withMetrics.timeSeconds)
+      : 0;
+  const costSaved =
+    withoutMetrics?.costUsd !== undefined &&
+    withMetrics?.costUsd !== undefined
+      ? savingsPercent(withoutMetrics.costUsd, withMetrics.costUsd)
+      : 0;
+  const showTimeSavings = timeSaved > 0;
+  const showCostSavings = costSaved > 0;
+  const showSavings =
+    activePrompt && bothCompleted && (showTimeSavings || showCostSavings);
+
+  const breakdown = activePrompt?.qualityBreakdown;
+  const showBreakdown =
+    bothCompleted && breakdown && breakdown.length > 0;
 
   return (
     <section className="dual-agent">
@@ -65,17 +86,22 @@ export function DualAgentView({
             </p>
           )}
         </div>
-        {showSavings && activePrompt && (
+        {showSavings && withoutMetrics && withMetrics && (
           <p className="dual-agent__savings" role="status">
-            With Sourcegraph MCP: <strong>{timeSaved}% faster</strong>
-            {" · "}
-            <strong>{costSaved}% lower cost</strong>
+            With Sourcegraph MCP:{" "}
+            {showTimeSavings && <strong>{timeSaved}% faster</strong>}
+            {showTimeSavings && showCostSavings && " · "}
+            {showCostSavings && <strong>{costSaved}% lower cost</strong>}
             <span className="dual-agent__savings-detail">
-              {" "}
-              ({formatDuration(activePrompt.metrics.withoutMCP.timeSeconds)}{" "}
-              {formatCost(activePrompt.metrics.withoutMCP.costUsd)} →{" "}
-              {formatDuration(activePrompt.metrics.withMCP.timeSeconds)}{" "}
-              {formatCost(activePrompt.metrics.withMCP.costUsd)})
+              {" ("}
+              {showTimeSavings &&
+                `${formatDuration(withoutMetrics.timeSeconds!)}${showCostSavings ? " " : ""}`}
+              {showCostSavings && formatCost(withoutMetrics.costUsd!)}
+              {" → "}
+              {showTimeSavings &&
+                `${formatDuration(withMetrics.timeSeconds!)}${showCostSavings ? " " : ""}`}
+              {showCostSavings && formatCost(withMetrics.costUsd!)}
+              {")"}
             </span>
           </p>
         )}
@@ -85,12 +111,7 @@ export function DualAgentView({
           title="Agent"
           variant="plain"
           state={withoutState}
-          metrics={
-            activePrompt?.metrics.withoutMCP ?? {
-              timeSeconds: 0,
-              costUsd: 0,
-            }
-          }
+          metrics={activePrompt?.metrics.withoutMCP ?? {}}
           repo={scenario?.repo}
           repoUrl={scenario?.repoUrl}
           scenarioId={scenario?.id}
@@ -101,12 +122,7 @@ export function DualAgentView({
           title="Agent + Sourcegraph MCP"
           variant="mcp"
           state={withState}
-          metrics={
-            activePrompt?.metrics.withMCP ?? {
-              timeSeconds: 0,
-              costUsd: 0,
-            }
-          }
+          metrics={activePrompt?.metrics.withMCP ?? {}}
           repo={scenario?.repo}
           repoUrl={scenario?.repoUrl}
           scenarioId={scenario?.id}
@@ -114,6 +130,13 @@ export function DualAgentView({
           logContent={activePrompt?.logs.withMCP}
         />
       </div>
+      {showBreakdown && breakdown && (
+        <QualityBreakdown
+          rows={breakdown}
+          collapsed={breakdownCollapsed}
+          onToggle={handleToggleBreakdown}
+        />
+      )}
     </section>
   );
 }

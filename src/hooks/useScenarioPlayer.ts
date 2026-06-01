@@ -1,64 +1,90 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   ColumnState,
+  ConversationEvent,
   ScenarioPrompt,
   TimelineEvent,
-  ToolCall,
 } from "../types/scenario";
 import { emptyColumnState } from "../types/scenario";
 
-function getMaxTime(events: TimelineEvent[]): number {
-  return events.reduce((max, e) => Math.max(max, e.at), 0);
+// Streaming pacing for assistant messages. Kept here so we can compute when
+// playback (including in-progress typewriter text) actually finishes.
+const STREAM_CHARS_PER_TICK = 3;
+const STREAM_CHUNK_MS = 18;
+
+function getRenderDoneTime(events: TimelineEvent[]): number {
+  return events.reduce((max, event) => {
+    const streamMs =
+      event.type === "assistant" && event.stream
+        ? Math.ceil(event.text.length / STREAM_CHARS_PER_TICK) *
+          STREAM_CHUNK_MS
+        : 0;
+    return Math.max(max, event.at + streamMs);
+  }, 0);
 }
 
 function applyEvent(state: ColumnState, event: TimelineEvent): ColumnState {
   const next = { ...state };
 
   switch (event.type) {
-    case "user":
-      next.userMessages = [
-        ...next.userMessages,
-        { id: `user-${event.at}`, text: event.text },
-      ];
+    case "user": {
+      const convEvent: ConversationEvent = {
+        type: "user",
+        id: `user-${event.at}`,
+        text: event.text,
+      };
+      next.events = [...next.events, convEvent];
       break;
-    case "assistant":
-      next.assistantMessages = [
-        ...next.assistantMessages,
-        {
-          id: `asst-${event.at}`,
-          text: event.text,
-          isStreaming: event.stream ?? false,
-        },
-      ];
+    }
+    case "assistant": {
+      const convEvent: ConversationEvent = {
+        type: "assistant",
+        id: `asst-${event.at}`,
+        text: event.text,
+        isStreaming: event.stream ?? false,
+      };
+      next.events = [...next.events, convEvent];
       break;
+    }
     case "tool": {
-      const existing = next.toolCalls.findIndex(
-        (t) => t.name === event.name && t.args === event.args,
+      // When the same tool call transitions running → done, reuse the
+      // existing React key so the card updates in place instead of
+      // remounting (which would reset expanded/copied state and replay
+      // the entry animation).
+      const existing = next.events.findIndex(
+        (e) =>
+          e.type === "tool" &&
+          e.name === event.name &&
+          e.args === event.args,
       );
-      const tool: ToolCall = {
-        id: `tool-${event.at}-${event.name}`,
+      const existingEvent =
+        existing >= 0 ? next.events[existing] : undefined;
+      const id =
+        existingEvent?.type === "tool"
+          ? existingEvent.id
+          : `tool-${event.at}-${event.name}`;
+      const convEvent: ConversationEvent = {
+        type: "tool",
+        id,
         name: event.name,
         args: event.args,
         status: event.status ?? "done",
       };
       if (existing >= 0) {
-        const updated = [...next.toolCalls];
-        updated[existing] = tool;
-        next.toolCalls = updated;
+        const updated = [...next.events];
+        updated[existing] = convEvent;
+        next.events = updated;
       } else {
-        next.toolCalls = [...next.toolCalls, tool];
+        next.events = [...next.events, convEvent];
       }
       break;
     }
-    case "missed":
-      next.missedItems = event.items;
-      break;
     case "complete":
       next.completed = true;
-      next.assistantMessages = next.assistantMessages.map((m) => ({
-        ...m,
-        isStreaming: false,
-      }));
+      next.events = next.events.map((e) =>
+        e.type === "assistant" ? { ...e, isStreaming: false } : e,
+      );
+      next.events = [...next.events, { type: "complete" }];
       break;
   }
 
@@ -77,16 +103,20 @@ function streamAssistantText(
     const partial = fullText.slice(0, index);
     setState((prev) => ({
       ...prev,
-      assistantMessages: prev.assistantMessages.map((m) =>
-        m.id === messageId ? { ...m, text: partial } : m,
+      events: prev.events.map((e) =>
+        e.type === "assistant" && e.id === messageId
+          ? { ...e, text: partial }
+          : e,
       ),
     }));
     if (index >= fullText.length) {
       clearInterval(interval);
       setState((prev) => ({
         ...prev,
-        assistantMessages: prev.assistantMessages.map((m) =>
-          m.id === messageId ? { ...m, text: fullText, isStreaming: false } : m,
+        events: prev.events.map((e) =>
+          e.type === "assistant" && e.id === messageId
+            ? { ...e, text: fullText, isStreaming: false }
+            : e,
         ),
       }));
     }
@@ -123,8 +153,15 @@ export function useScenarioPlayer(prompt: ScenarioPrompt | null) {
     setWithoutState(emptyColumnState());
     setWithState(emptyColumnState());
 
-    const withoutMax = getMaxTime(prompt.withoutMCP);
-    const withMax = getMaxTime(prompt.withMCP);
+    const reducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    const withoutMax = reducedMotion
+      ? prompt.withoutMCP.reduce((m, e) => Math.max(m, e.at), 0)
+      : getRenderDoneTime(prompt.withoutMCP);
+    const withMax = reducedMotion
+      ? prompt.withMCP.reduce((m, e) => Math.max(m, e.at), 0)
+      : getRenderDoneTime(prompt.withMCP);
     const totalDuration = Math.max(withoutMax, withMax) + 500;
     setIsPlaying(true);
 
@@ -134,40 +171,23 @@ export function useScenarioPlayer(prompt: ScenarioPrompt | null) {
     ) => {
       for (const event of events) {
         const timer = setTimeout(() => {
-          if (event.type === "assistant" && event.stream) {
+          if (event.type === "assistant" && event.stream && !reducedMotion) {
             const messageId = `asst-${event.at}`;
             setState((prev) =>
-              applyEvent(prev, {
-                ...event,
-                text: "",
-                stream: true,
-              }),
+              applyEvent(prev, { ...event, text: "", stream: true }),
             );
-            const reducedMotion = window.matchMedia(
-              "(prefers-reduced-motion: reduce)",
-            ).matches;
             const interval = streamAssistantText(
               setState,
               messageId,
               event.text,
-              reducedMotion ? 0 : 18,
+              18,
             );
-            if (reducedMotion) {
-              clearInterval(interval);
-              setState((prev) =>
-                applyEvent(
-                  {
-                    ...prev,
-                    assistantMessages: prev.assistantMessages.filter(
-                      (m) => m.id !== messageId,
-                    ),
-                  },
-                  event,
-                ),
-              );
-            } else {
-              intervalsRef.current.push(interval);
-            }
+            intervalsRef.current.push(interval);
+          } else if (event.type === "assistant" && event.stream) {
+            // Reduced motion: render the assistant message in full immediately.
+            setState((prev) =>
+              applyEvent(prev, { ...event, stream: false }),
+            );
           } else {
             setState((prev) => applyEvent(prev, event));
           }

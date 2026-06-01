@@ -14,10 +14,13 @@ export function DemoTabs({
 }: DemoTabsProps) {
   if (prompts.length <= 1) return null;
 
+  // These are segmented buttons, not true ARIA tabs (no associated tabpanel
+  // markup, no arrow-key roving focus). Using aria-pressed gives assistive
+  // tech a correct mental model without the unmet expectations of role=tab.
   return (
     <div
       className="demo-tabs"
-      role="tablist"
+      role="group"
       aria-label="Demo categories"
     >
       {prompts.map((prompt) => {
@@ -26,9 +29,8 @@ export function DemoTabs({
           <button
             key={prompt.id}
             type="button"
-            role="tab"
             className={`demo-tabs__tab ${isActive ? "demo-tabs__tab--active" : ""}`}
-            aria-selected={isActive}
+            aria-pressed={isActive}
             onClick={() => onSelectPrompt(prompt.id)}
           >
             <span className="demo-tabs__label">{prompt.label}</span>
