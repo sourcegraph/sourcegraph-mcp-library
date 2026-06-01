@@ -110,7 +110,10 @@ export function DualAgentView({
         <AgentColumn
           title="Agent"
           variant="plain"
-          state={withoutState}
+          state={{
+            ...withoutState,
+            completed: withoutState.completed && withState.completed,
+          }}
           metrics={activePrompt?.metrics.withoutMCP ?? {}}
           repo={scenario?.repo}
           repoUrl={scenario?.repoUrl}
@@ -121,7 +124,10 @@ export function DualAgentView({
         <AgentColumn
           title="Agent + Sourcegraph MCP"
           variant="mcp"
-          state={withState}
+          state={{
+            ...withState,
+            completed: withoutState.completed && withState.completed,
+          }}
           metrics={activePrompt?.metrics.withMCP ?? {}}
           repo={scenario?.repo}
           repoUrl={scenario?.repoUrl}
