@@ -167,6 +167,7 @@ export function DualAgentView({
           scenarioId={scenario?.id}
           promptId={activePrompt?.id}
           logContent={activePrompt?.logs.withoutMCP}
+          logsFileExtension={activePrompt?.logsFileExtension}
         />
         <AgentColumn
           title="Agent + Sourcegraph MCP"
@@ -181,6 +182,7 @@ export function DualAgentView({
           scenarioId={scenario?.id}
           promptId={activePrompt?.id}
           logContent={activePrompt?.logs.withMCP}
+          logsFileExtension={activePrompt?.logsFileExtension}
         />
       </div>
       {showBreakdown && breakdown && (

@@ -15,6 +15,7 @@ interface AgentColumnProps {
   scenarioId?: string;
   promptId?: string;
   logContent?: string;
+  logsFileExtension?: "log" | "json";
 }
 
 function AgentColumnImpl({
@@ -27,6 +28,7 @@ function AgentColumnImpl({
   scenarioId,
   promptId,
   logContent,
+  logsFileExtension = "log",
 }: AgentColumnProps) {
   const isMcp = variant === "mcp";
   const canDownloadLog = Boolean(scenarioId && promptId && logContent);
@@ -34,7 +36,7 @@ function AgentColumnImpl({
   const handleDownloadLog = () => {
     if (!scenarioId || !promptId || !logContent) return;
     downloadLog(
-      buildLogFilename(scenarioId, promptId, variant),
+      buildLogFilename(scenarioId, promptId, variant, logsFileExtension),
       logContent,
     );
   };

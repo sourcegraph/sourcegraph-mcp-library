@@ -1,6 +1,6 @@
 import type { PromptMetrics, ScenarioPrompt } from "../../../types/scenario";
-import withoutMcpLog from "./without-mcp.claude.log?raw";
-import withMcpLog from "./with-mcp.claude.log?raw";
+import withoutMcpLog from "./without-mcp.trajectory.json?raw";
+import withMcpLog from "./with-mcp.trajectory.json?raw";
 import { withoutMCP, withMCP } from "./timeline";
 
 const metrics: PromptMetrics = {
@@ -22,6 +22,7 @@ export const flinkCheckpointArchPrompt: ScenarioPrompt = {
     withoutMCP: withoutMcpLog,
     withMCP: withMcpLog,
   },
+  logsFileExtension: "json",
   qualityBreakdown: [
     {
       dimension: "Task Quality",
@@ -51,7 +52,7 @@ export const flinkCheckpointArchPrompt: ScenarioPrompt = {
         "Baseline: listed nothing scorable. MCP: stayed mostly on-target but listed a few extra files, lowering this slightly.",
     },
     {
-      dimension: "Dependecy Accuracy",
+      dimension: "Dependency Accuracy",
       weight: "10%",
       definition: "Did it trace the order of the call chain?",
       baseline: "0.00",

@@ -69,11 +69,15 @@ export interface ScenarioPrompt {
   text: string;
   /** Display-only chip; not a user-facing toggle */
   environment?: RepoEnvironment;
+  repo?: string;
+  repoUrl?: string;
   metrics: PromptMetrics;
   withoutMCP: TimelineEvent[];
   withMCP: TimelineEvent[];
   /** Live execution logs for download (manually added to the repo) */
   logs: ScenarioPromptLogs;
+  /** File extension for downloaded logs: "log" (default) or "json" for trajectory files */
+  logsFileExtension?: "log" | "json";
   /** Optional side-by-side scoring table shown below the two agent columns. */
   qualityBreakdown?: QualityBreakdownRow[];
 }

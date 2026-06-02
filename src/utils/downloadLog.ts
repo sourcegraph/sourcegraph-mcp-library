@@ -12,7 +12,8 @@ export function buildLogFilename(
   scenarioId: string,
   promptId: string,
   variant: "plain" | "mcp",
+  fileExtension: "log" | "json" = "log",
 ): string {
   const mode = variant === "mcp" ? "with-mcp" : "without-mcp";
-  return `${scenarioId}__${promptId}__${mode}.claude.log`;
+  return `${scenarioId}__${promptId}__${mode}.claude.${fileExtension}`;
 }
