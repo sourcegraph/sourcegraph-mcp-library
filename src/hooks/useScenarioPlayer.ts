@@ -6,21 +6,40 @@ import type {
   TimelineEvent,
 } from "../types/scenario";
 import { emptyColumnState } from "../types/scenario";
+import {
+  COMPLETE_BUFFER_MS,
+  PLAYBACK_TAIL_MS,
+  STREAM_CHARS_PER_TICK,
+  STREAM_CHUNK_MS,
+} from "../utils/playbackTiming";
+import { validateScenario } from "../utils/validateScenario";
 
-// Streaming pacing for assistant messages. Kept here so we can compute when
-// playback (including in-progress typewriter text) actually finishes.
-const STREAM_CHARS_PER_TICK = 3;
-const STREAM_CHUNK_MS = 18;
+function eventRenderEnd(event: TimelineEvent): number {
+  const streamMs =
+    event.type === "assistant" && event.stream
+      ? Math.ceil(event.text.length / STREAM_CHARS_PER_TICK) * STREAM_CHUNK_MS
+      : 0;
+  return event.at + streamMs;
+}
 
-function getRenderDoneTime(events: TimelineEvent[]): number {
-  return events.reduce((max, event) => {
-    const streamMs =
-      event.type === "assistant" && event.stream
-        ? Math.ceil(event.text.length / STREAM_CHARS_PER_TICK) *
-          STREAM_CHUNK_MS
-        : 0;
-    return Math.max(max, event.at + streamMs);
-  }, 0);
+/**
+ * Stable React key for a tool card. Uses the explicit `id` when present
+ * so a `running` and its later `done` event collide on the same key even
+ * if `args` was shortened.
+ */
+function toolCardId(
+  event: Extract<TimelineEvent, { type: "tool" }>,
+): string {
+  return event.id ? `tool-${event.id}` : `tool-${event.at}-${event.name}`;
+}
+
+/** Time at which the last non-complete event has fully rendered. */
+function getContentEndTime(events: TimelineEvent[]): number {
+  return events.reduce(
+    (max, event) =>
+      event.type === "complete" ? max : Math.max(max, eventRenderEnd(event)),
+    0,
+  );
 }
 
 function applyEvent(state: ColumnState, event: TimelineEvent): ColumnState {
@@ -51,18 +70,27 @@ function applyEvent(state: ColumnState, event: TimelineEvent): ColumnState {
       // existing React key so the card updates in place instead of
       // remounting (which would reset expanded/copied state and replay
       // the entry animation).
-      const existing = next.events.findIndex(
-        (e) =>
-          e.type === "tool" &&
+      //
+      // Matching strategy, in order:
+      //   1. Explicit `id` on the timeline event (most robust — survives
+      //      `args` being shortened on the `done` event).
+      //   2. Same `name + args` AND existing status is still "running"
+      //      (so the same tool fired twice doesn't stomp on the first).
+      const existing = next.events.findIndex((e) => {
+        if (e.type !== "tool") return false;
+        if (event.id && e.id === toolCardId(event)) return true;
+        return (
+          e.status === "running" &&
           e.name === event.name &&
-          e.args === event.args,
-      );
+          e.args === event.args
+        );
+      });
       const existingEvent =
         existing >= 0 ? next.events[existing] : undefined;
       const id =
         existingEvent?.type === "tool"
           ? existingEvent.id
-          : `tool-${event.at}-${event.name}`;
+          : toolCardId(event);
       const convEvent: ConversationEvent = {
         type: "tool",
         id,
@@ -99,7 +127,7 @@ function streamAssistantText(
 ) {
   let index = 0;
   const interval = setInterval(() => {
-    index += 3;
+    index += STREAM_CHARS_PER_TICK;
     const partial = fullText.slice(0, index);
     setState((prev) => ({
       ...prev,
@@ -149,6 +177,10 @@ export function useScenarioPlayer(prompt: ScenarioPrompt | null) {
   useEffect(() => {
     if (!prompt) return;
 
+    if (import.meta.env.DEV) {
+      validateScenario(prompt);
+    }
+
     clearAll();
     setWithoutState(emptyColumnState());
     setWithState(emptyColumnState());
@@ -156,20 +188,28 @@ export function useScenarioPlayer(prompt: ScenarioPrompt | null) {
     const reducedMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
-    const withoutMax = reducedMotion
-      ? prompt.withoutMCP.reduce((m, e) => Math.max(m, e.at), 0)
-      : getRenderDoneTime(prompt.withoutMCP);
-    const withMax = reducedMotion
-      ? prompt.withMCP.reduce((m, e) => Math.max(m, e.at), 0)
-      : getRenderDoneTime(prompt.withMCP);
-    const totalDuration = Math.max(withoutMax, withMax) + 500;
+    // Each column's natural finish is "last content fully rendered + small buffer".
+    // We override any per-scenario `complete.at` so authors don't each have to
+    // tune dead time. Reduced motion skips streaming, so use raw `at` values.
+    const naturalEnd = (events: TimelineEvent[]) =>
+      reducedMotion
+        ? events.reduce(
+            (m, e) => (e.type === "complete" ? m : Math.max(m, e.at)),
+            0,
+          )
+        : getContentEndTime(events);
+    const withoutEnd = naturalEnd(prompt.withoutMCP) + COMPLETE_BUFFER_MS;
+    const withEnd = naturalEnd(prompt.withMCP) + COMPLETE_BUFFER_MS;
+    const totalDuration = Math.max(withoutEnd, withEnd) + PLAYBACK_TAIL_MS;
     setIsPlaying(true);
 
     const schedule = (
       events: TimelineEvent[],
       setState: React.Dispatch<React.SetStateAction<ColumnState>>,
+      completeAt: number,
     ) => {
       for (const event of events) {
+        const at = event.type === "complete" ? completeAt : event.at;
         const timer = setTimeout(() => {
           if (event.type === "assistant" && event.stream && !reducedMotion) {
             const messageId = `asst-${event.at}`;
@@ -180,7 +220,7 @@ export function useScenarioPlayer(prompt: ScenarioPrompt | null) {
               setState,
               messageId,
               event.text,
-              18,
+              STREAM_CHUNK_MS,
             );
             intervalsRef.current.push(interval);
           } else if (event.type === "assistant" && event.stream) {
@@ -191,13 +231,13 @@ export function useScenarioPlayer(prompt: ScenarioPrompt | null) {
           } else {
             setState((prev) => applyEvent(prev, event));
           }
-        }, event.at);
+        }, at);
         timersRef.current.push(timer);
       }
     };
 
-    schedule(prompt.withoutMCP, setWithoutState);
-    schedule(prompt.withMCP, setWithState);
+    schedule(prompt.withoutMCP, setWithoutState, withoutEnd);
+    schedule(prompt.withMCP, setWithState, withEnd);
 
     const endTimer = setTimeout(() => {
       setIsPlaying(false);

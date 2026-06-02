@@ -11,10 +11,10 @@
   visibility: hidden;
   transform: translateY(-4px);
   transition:
-    opacity 0.35s ease,
-    visibility 0.35s ease,
-    transform 0.35s ease,
-    border-color 0.35s ease;
+    opacity var(--metrics-reveal-duration) ease,
+    visibility var(--metrics-reveal-duration) ease,
+    transform var(--metrics-reveal-duration) ease,
+    border-color var(--metrics-reveal-duration) ease;
 }
 
 .execution-metrics--visible {
@@ -24,8 +24,8 @@
 }
 
 .agent-column--mcp .execution-metrics--visible {
-  border-color: var(--brand-border);
-  background: var(--brand-bg);
+  border-color: var(--success-border);
+  background: var(--success-bg);
 }
 
 .execution-metrics__item {
@@ -51,7 +51,7 @@
 }
 
 .agent-column--mcp .execution-metrics--visible .execution-metrics__value {
-  color: var(--brand-bright);
+  color: var(--success);
 }
 
 .execution-metrics__divider {

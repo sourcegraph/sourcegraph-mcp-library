@@ -25,8 +25,7 @@ export default function App() {
     return getScenarioPrompt(scenario, activePromptId) ?? null;
   }, [scenario, activePromptId]);
 
-  const { withoutState, withState, isPlaying, replay } =
-    useScenarioPlayer(activePrompt);
+  const { withoutState, withState, replay } = useScenarioPlayer(activePrompt);
 
   const handleSelectScenario = useCallback((id: string) => {
     const next = getScenarioById(id);
@@ -95,7 +94,6 @@ export default function App() {
           onSelectPrompt={handleSelectPrompt}
           withoutState={withoutState}
           withState={withState}
-          isPlaying={isPlaying}
         />
       </main>
     </div>

@@ -1,15 +1,19 @@
-import type { ScenarioPrompt } from "../../../types/scenario";
-import { promptMetrics } from "../../prompt-metrics";
+import type { PromptMetrics, ScenarioPrompt } from "../../../types/scenario";
 import withoutMcpLog from "./without-mcp.claude.log?raw";
 import withMcpLog from "./with-mcp.claude.log?raw";
 import { withoutMCP, withMCP } from "./timeline";
+
+const metrics: PromptMetrics = {
+  withoutMCP: { timeSeconds: 163, costUsd: 0.26, quality: 0, toolCalls: 483 },
+  withMCP: { timeSeconds: 145, costUsd: 0.28, quality: 1, toolCalls: 42 },
+};
 
 export const aclCodeAuditPrompt: ScenarioPrompt = {
   id: "acl-code-audit",
   label: "ACL authorization code audit",
   environment: "multi-repo",
   text: "Find all Java source files in apache/kafka that implement or define Access Control List (ACL) authorization logic. For each file, report the class name and whether it defines the interface, implements it, or provides utilities.",
-  metrics: promptMetrics.aclCodeAudit,
+  metrics,
   withoutMCP,
   withMCP,
   logs: {

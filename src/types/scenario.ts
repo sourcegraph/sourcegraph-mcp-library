@@ -6,6 +6,15 @@ export type TimelineEvent =
   | {
       at: number;
       type: "tool";
+      /**
+       * Optional stable identifier linking a `running` event to its later
+       * `done` event. When set, the player matches transitions by `id` and
+       * ignores `name`/`args` differences (so you can shorten `args` on the
+       * `done` event if you want). When omitted, the player falls back to
+       * matching the most recent still-running tool with identical
+       * `name + args`.
+       */
+      id?: string;
       name: string;
       args: string;
       status?: ToolStatus;
@@ -44,6 +53,10 @@ export interface ScenarioPromptLogs {
  */
 export interface QualityBreakdownRow {
   dimension: string;
+  /** Optional weight of this dimension in the composite score (e.g. "0.40"). */
+  weight?: string;
+  /** Optional plain-language description of what this dimension measures. */
+  definition?: string;
   baseline: string;
   mcp: string;
   notes?: string;

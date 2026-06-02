@@ -45,6 +45,9 @@ export function QualityBreakdown({
                 <th scope="col" className="quality-breakdown__th-dim">
                   Dimension
                 </th>
+                <th scope="col" className="quality-breakdown__th-definition">
+                  Weight/Definition
+                </th>
                 <th scope="col" className="quality-breakdown__th-value">
                   Baseline
                 </th>
@@ -60,6 +63,14 @@ export function QualityBreakdown({
               {rows.map((row) => (
                 <tr key={row.dimension}>
                   <td className="quality-breakdown__dim">{row.dimension}</td>
+                  <td className="quality-breakdown__definition">
+                    {row.weight && (
+                      <div className="quality-breakdown__definition-weight">
+                        {row.weight}
+                      </div>
+                    )}
+                    {row.definition}
+                  </td>
                   <td className="quality-breakdown__value quality-breakdown__value--baseline">
                     {row.baseline}
                   </td>
