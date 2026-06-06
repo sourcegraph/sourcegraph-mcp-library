@@ -5,7 +5,6 @@ import { featureDevelopmentPlan } from "./feature-development-plan";
 import { bugFixingTests } from "./bug-fixing-tests";
 import { incidentInvestigation } from "./incident-investigation";
 import { security } from "./security";
-import { audit } from "./audit";
 
 export const scenarios: Scenario[] = [
   understandExistingCode,
@@ -14,7 +13,6 @@ export const scenarios: Scenario[] = [
   bugFixingTests,
   incidentInvestigation,
   security,
-  audit,
 ];
 
 export function getScenarioById(id: string): Scenario | undefined {

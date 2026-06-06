@@ -36,7 +36,6 @@ For offline demos: `npm run build && npx serve dist`
 | 4 | Bug fixing & tests | grafana/grafana |
 | 5 | Investigating an incident | grafana/grafana |
 | 6 | Security | apache/kafka |
-| 7 | Audit | apache/kafka |
 
 ## Editing scenarios
 

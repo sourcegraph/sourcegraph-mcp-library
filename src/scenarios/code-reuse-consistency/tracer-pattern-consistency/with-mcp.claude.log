@@ -1,0 +1,257 @@
+⏺ I'll use Sourcegraph MCP to analyze the tracing patterns comprehensively. Let me start by searching for the global tracer pattern and then find examples of the correct injected pattern.
+
+⏺ Now I'll use Sourcegraph's deep search to analyze the tracing patterns comprehensively.
+
+  Called sourcegraph (ctrl+o to expand)
+
+⏺ Let me retrieve the deep search results:
+
+  Called sourcegraph (ctrl+o to expand)
+
+⏺ Perfect! Now let me check if any files mix both patterns:
+
+  Called sourcegraph (ctrl+o to expand)
+
+⏺ Let me examine the pkg/services/setting/service.go file more closely since it was mentioned as a variant:
+
+  Called sourcegraph (ctrl+o to expand)
+
+⏺ Let me get the full file details:
+
+  Called sourcegraph (ctrl+o to expand)
+
+⏺ Summary of Tracing Pattern Analysis
+
+  Based on the Sourcegraph deep search, here's the complete picture of tracing patterns in Grafana:
+
+  1. Global var tracer = otel.Tracer(...) Pattern: 30 Files
+
+  All 30 files have this anti-pattern. The heaviest concentrations are:
+  - pkg/storage/unified/ — 12 files (largest subsystem with this issue)
+  - pkg/services/accesscontrol/ — 6 files
+
+  Files by package:
+  pkg/api/ (1)
+  pkg/services/accesscontrol/* (6)
+  pkg/services/authz/ (1)
+  pkg/services/dashboard* (1)
+  pkg/services/frontend/ (1)
+  pkg/services/ngalert/ (1)
+  pkg/services/notifications/ (1)
+  pkg/services/publicdashboards/ (1)
+  pkg/services/quota/ (1)
+  pkg/services/search/ (1)
+  pkg/services/setting/ (1) — special: wrapped variant
+  pkg/services/sqlstore/ (1)
+  pkg/services/team/ (1) 
+  pkg/storage/unified/* (12) — the real problem area
+
+  2. Example of Correct Injected Pattern
+
+  From pkg/services/cloudmigration/objectstorage/s3.go:
+
+  type S3 struct {
+      httpClient *http.Client
+      tracer     tracing.Tracer  // ← field, not global
+  }
+
+⏺ sourcegraph - keyword_search (MCP)(query: "repo:^github.com/grafana/grafana$ file:^pkg/ \"var tracer = otel\" AND \"tracer.*tracing.Tracer\"")
+  ⎿  {
+       "text": "No results.\n\nNo results found."
+     }
+  
+                                                                                                                                                                       11:54 AM claude-haiku-4-5-20251001
+⏺ Let me examine the pkg/services/setting/service.go file more closely since it was mentioned as a variant:
+      
+⏺ sourcegraph - keyword_search (MCP)(query: "repo:^github.com/grafana/grafana$ file:pkg/services/setting/service.go")
+  ⎿  {
+       "text": "# github.com/grafana/grafana – pkg/services/setting/service.go\n"
+     }
+  
+                                                                                                                                                                       11:54 AM claude-haiku-4-5-20251001
+⏺ Let me get the full file details:
+  
+⏺ sourcegraph - read_file (MCP)(repo: "github.com/grafana/grafana", path: "pkg/services/setting/service.go", startLine: 1, endLine: 80)
+  ⎿  {
+       "text": "URL: https://demo.sourcegraph.com/github.com/grafana/grafana@32bf451ba67b967d50357709a0fdbd775e6ab2c9/-/blob/pkg/services/setting/service.go%3FL1-80\n1: package setting\n2: \n3: import (\n4:
+     \t\"context\"\n5: \t\"encoding/json\"\n6: \t\"fmt\"\n7: \t\"io\"\n8: \t\"net/http\"\n9: \t\"os\"\n10: \t\"sync\"\n11: \t\"time\"\n12: \n13:
+     \t\"github.com/grafana/grafana-plugin-sdk-go/backend/httpclient\"\n14: \t\"github.com/hashicorp/golang-lru/v2/expirable\"\n15: \t\"github.com/prometheus/client_golang/prometheus\"\n16:
+     \t\"go.opentelemetry.io/otel\"\n17: \t\"go.opentelemetry.io/otel/propagation\"\n18: \t\"go.opentelemetry.io/otel/trace\"\n19: \t\"gopkg.in/ini.v1\"\n20: \tmetav1
+     \"k8s.io/apimachinery/pkg/apis/meta/v1\"\n21: \t\"k8s.io/apimachinery/pkg/runtime\"\n22: \t\"k8s.io/apimachinery/pkg/runtime/schema\"\n23: \t\"k8s.io/apimachinery/pkg/runtime/serializer\"\n24:
+     \t\"k8s.io/apiserver/pkg/endpoints/request\"\n25: \t\"k8s.io/client-go/rest\"\n26: \t\"k8s.io/client-go/transport\"\n27: \t\"k8s.io/client-go/util/flowcontrol\"\n28: \n29: \tauthlib
+     \"github.com/grafana/authlib/authn\"\n30: \t\"github.com/grafana/grafana/pkg/infra/httpclient/httpclientprovider\"\n31: \tlogging \"github.com/grafana/grafana/pkg/infra/log\"\n32:
+     \t\"github.com/grafana/grafana/pkg/infra/tracing\"\n33: \t\"github.com/grafana/grafana/pkg/semconv\"\n34: )\n35: \n36: // settingTracer wraps an otel tracer and implements the tracing.Tracer
+     interface.\n37: type settingTracer struct {\n38: \ttrace.Tracer\n39: }\n40: \n41: // Inject propagates trace context into HTTP headers.\n42: func (t *settingTracer) Inject(ctx context.Context, header
+     http.Header, _ trace.Span) {\n43: \totel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(header))\n44: }\n45: \n46: var tracer tracing.Tracer =
+     &settingTracer{otel.Tracer(\"github.com/grafana/grafana/pkg/services/setting\")}\n47: \n48: const LogPrefix = \"setting.service\"\n49: \n50: const DefaultPageSize = int64(500)\n51: const DefaultQPS =
+     float32(200)\n52: const DefaultBurst = 300\n53: const DefaultCacheTTL = 5 * time.Second\n54: const DefaultCacheMaxEntries = 1000\n55: \n56: const (\n57: \tApiGroup   = \"setting.grafana.app\"\n58:
+     \tapiVersion = \"v1beta1\"\n59: \tresource   = \"settings\"\n60: )\n61: \n62: const defaultServiceName = \"grafana\"\n63: \n64: // standard OpenTelemetry environment variable for service name.\n65: //
+     refer to: https://opentelemetry.io/docs/specs/otel/configuration/sdk-environment-variables/#general-sdk-configuration\n66: const otelServiceNameEnvVar = \"OTEL_SERVICE_NAME\"\n67: \n68: //
+     longThrottleLatency defines the threshold for counting throttled requests.\n69: const longThrottleLatency = 50 * time.Millisecond\n70: \n71: var settingGroupVersion = schema.GroupVersion{\n72: \tGroup:
+     ApiGroup,\n73: \tVersion: apiVersion,\n74: }\n75: \n76: type clientMetrics struct {\n77: \tlistDuration             *prometheus.HistogramVec\n78: \tlistResultSize           prometheus.Histogram\n79:
+     \trateLimiterThrottleTotal prometheus.Counter\n80: \tcacheHitTotal            prometheus.Counter\n81: "
+     }
+  
+                                                                                                                                                                       11:55 AM claude-haiku-4-5-20251001
+⏺ Summary of Tracing Pattern Analysis
+  
+  Based on the Sourcegraph deep search, here's the complete picture of tracing patterns in Grafana:
+  
+  1. Global var tracer = otel.Tracer(...) Pattern: 30 Files
+
+  All 30 files have this anti-pattern. The heaviest concentrations are:
+  - pkg/storage/unified/ — 12 files (largest subsystem with this issue)
+  - pkg/services/accesscontrol/ — 6 files
+  
+  Files by package:
+  pkg/api/ (1)
+  pkg/services/accesscontrol/* (6)
+  pkg/services/authz/ (1)
+  pkg/services/dashboard* (1)
+  pkg/services/frontend/ (1)
+  pkg/services/ngalert/ (1)
+  pkg/services/notifications/ (1)
+  pkg/services/publicdashboards/ (1)
+  pkg/services/quota/ (1)
+  pkg/services/search/ (1)
+  pkg/services/setting/ (1) — special: wrapped variant
+  pkg/services/sqlstore/ (1)
+  pkg/services/team/ (1)
+  pkg/storage/unified/* (12) — the real problem area
+
+  2. Example of Correct Injected Pattern
+
+  From pkg/services/cloudmigration/objectstorage/s3.go:
+
+  type S3 struct {
+      httpClient *http.Client
+      tracer     tracing.Tracer  // ← field, not global
+⏺ sourcegraph - keyword_search (MCP)(query: "repo:^github.com/grafana/grafana$ file:^pkg/ \"var tracer = otel\" AND \"tracer.*tracing.Tracer\"")
+  ⎿  {
+       "text": "No results.\n\nNo results found."
+     }
+  
+                                                                                                                                                                       11:54 AM claude-haiku-4-5-20251001
+⏺ Let me examine the pkg/services/setting/service.go file more closely since it was mentioned as a variant:
+      
+⏺ sourcegraph - keyword_search (MCP)(query: "repo:^github.com/grafana/grafana$ file:pkg/services/setting/service.go")
+  ⎿  {
+       "text": "# github.com/grafana/grafana – pkg/services/setting/service.go\n"
+     }
+  
+                                                                                                                                                                       11:54 AM claude-haiku-4-5-20251001
+⏺ Let me get the full file details:
+
+⏺ sourcegraph - read_file (MCP)(repo: "github.com/grafana/grafana", path: "pkg/services/setting/service.go", startLine: 1, endLine: 80)
+  ⎿  {
+       "text": "URL: https://demo.sourcegraph.com/github.com/grafana/grafana@32bf451ba67b967d50357709a0fdbd775e6ab2c9/-/blob/pkg/services/setting/service.go%3FL1-80\n1: package setting\n2: \n3: import (\n4:
+     \t\"context\"\n5: \t\"encoding/json\"\n6: \t\"fmt\"\n7: \t\"io\"\n8: \t\"net/http\"\n9: \t\"os\"\n10: \t\"sync\"\n11: \t\"time\"\n12: \n13:
+     \t\"github.com/grafana/grafana-plugin-sdk-go/backend/httpclient\"\n14: \t\"github.com/hashicorp/golang-lru/v2/expirable\"\n15: \t\"github.com/prometheus/client_golang/prometheus\"\n16:
+     \t\"go.opentelemetry.io/otel\"\n17: \t\"go.opentelemetry.io/otel/propagation\"\n18: \t\"go.opentelemetry.io/otel/trace\"\n19: \t\"gopkg.in/ini.v1\"\n20: \tmetav1
+     \"k8s.io/apimachinery/pkg/apis/meta/v1\"\n21: \t\"k8s.io/apimachinery/pkg/runtime\"\n22: \t\"k8s.io/apimachinery/pkg/runtime/schema\"\n23: \t\"k8s.io/apimachinery/pkg/runtime/serializer\"\n24:
+     \t\"k8s.io/apiserver/pkg/endpoints/request\"\n25: \t\"k8s.io/client-go/rest\"\n26: \t\"k8s.io/client-go/transport\"\n27: \t\"k8s.io/client-go/util/flowcontrol\"\n28: \n29: \tauthlib
+     \"github.com/grafana/authlib/authn\"\n30: \t\"github.com/grafana/grafana/pkg/infra/httpclient/httpclientprovider\"\n31: \tlogging \"github.com/grafana/grafana/pkg/infra/log\"\n32:
+     \t\"github.com/grafana/grafana/pkg/infra/tracing\"\n33: \t\"github.com/grafana/grafana/pkg/semconv\"\n34: )\n35: \n36: // settingTracer wraps an otel tracer and implements the tracing.Tracer
+     interface.\n37: type settingTracer struct {\n38: \ttrace.Tracer\n39: }\n40: \n41: // Inject propagates trace context into HTTP headers.\n42: func (t *settingTracer) Inject(ctx context.Context, header
+     http.Header, _ trace.Span) {\n43: \totel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(header))\n44: }\n45: \n46: var tracer tracing.Tracer =
+     &settingTracer{otel.Tracer(\"github.com/grafana/grafana/pkg/services/setting\")}\n47: \n48: const LogPrefix = \"setting.service\"\n49: \n50: const DefaultPageSize = int64(500)\n51: const DefaultQPS =
+     float32(200)\n52: const DefaultBurst = 300\n53: const DefaultCacheTTL = 5 * time.Second\n54: const DefaultCacheMaxEntries = 1000\n55: \n56: const (\n57: \tApiGroup   = \"setting.grafana.app\"\n58:
+     \tapiVersion = \"v1beta1\"\n59: \tresource   = \"settings\"\n60: )\n61: \n62: const defaultServiceName = \"grafana\"\n63: \n64: // standard OpenTelemetry environment variable for service name.\n65: //
+     refer to: https://opentelemetry.io/docs/specs/otel/configuration/sdk-environment-variables/#general-sdk-configuration\n66: const otelServiceNameEnvVar = \"OTEL_SERVICE_NAME\"\n67: \n68: //
+     longThrottleLatency defines the threshold for counting throttled requests.\n69: const longThrottleLatency = 50 * time.Millisecond\n70: \n71: var settingGroupVersion = schema.GroupVersion{\n72: \tGroup:
+     ApiGroup,\n73: \tVersion: apiVersion,\n74: }\n75: \n76: type clientMetrics struct {\n77: \tlistDuration             *prometheus.HistogramVec\n78: \tlistResultSize           prometheus.Histogram\n79:
+     \trateLimiterThrottleTotal prometheus.Counter\n80: \tcacheHitTotal            prometheus.Counter\n81: "
+     }
+  
+                                                                                                                                                                       11:55 AM claude-haiku-4-5-20251001
+⏺ Summary of Tracing Pattern Analysis
+  
+  Based on the Sourcegraph deep search, here's the complete picture of tracing patterns in Grafana:
+  
+  1. Global var tracer = otel.Tracer(...) Pattern: 30 Files
+
+  All 30 files have this anti-pattern. The heaviest concentrations are:
+  - pkg/storage/unified/ — 12 files (largest subsystem with this issue)
+  - pkg/services/accesscontrol/ — 6 files
+  
+  Files by package:
+  pkg/api/ (1)
+  pkg/services/accesscontrol/* (6)
+  pkg/services/authz/ (1)
+  pkg/services/dashboard* (1)
+  pkg/services/frontend/ (1)
+  pkg/services/ngalert/ (1)
+  pkg/services/notifications/ (1)
+  pkg/services/publicdashboards/ (1)
+  pkg/services/quota/ (1)
+  pkg/services/search/ (1)
+  pkg/services/setting/ (1) — special: wrapped variant
+  pkg/services/sqlstore/ (1)
+  pkg/services/team/ (1)
+  pkg/storage/unified/* (12) — the real problem area
+
+  2. Example of Correct Injected Pattern
+
+  From pkg/services/cloudmigration/objectstorage/s3.go:
+
+  type S3 struct {
+      httpClient *http.Client
+      tracer     tracing.Tracer  // ← field, not global
+  func NewS3(httpClient *http.Client, tracer tracing.Tracer) *S3 {
+      return &S3{httpClient: httpClient, tracer: tracer}  // ← injected via DI
+  }
+
+  func (s3 *S3) PresignedURLUpload(ctx context.Context, ...) error {
+      ctx, span := s3.tracer.Start(ctx, "objectstorage.S3.PresignedURLUpload")  // ← uses injected
+      defer span.End()
+      // ...
+  }
+
+  Key benefits:
+  - Tracer resolved at constructor time (after SDK initialized)
+  - Testable: inject noop.Tracer in tests
+  - Follows Wire DI pattern
+  - Captures configured SDK, not early global state
+
+  3. Files Mixing Both Patterns?
+
+  No pure mixing found, but one notable variant:
+
+  pkg/services/setting/service.go wraps the global tracer:
+  type settingTracer struct {
+      trace.Tracer  // wraps OTel tracer
+  }
+
+  // Still uses global init at package scope:
+  var tracer tracing.Tracer = &settingTracer{otel.Tracer("...")}
+
+  This is a cosmetic improvement (implements tracing.Tracer interface) but still suffers the same timing problem—initialization happens before SDK is configured.
+
+  4. Packages to Prioritize for Migration
+
+  ┌─────────────────────────────┬───────┬─────────────┬──────────────────────────────────────────────────────────┐
+  │           Package           │ Files │  Priority   │                        Reasoning                         │
+  ├─────────────────────────────┼───────┼─────────────┼──────────────────────────────────────────────────────────┤
+  │ pkg/storage/unified/        │ 12    │ 🔴 CRITICAL │ 40% of all anti-patterns; unified storage is high-impact │
+  ├─────────────────────────────┼───────┼─────────────┼──────────────────────────────────────────────────────────┤
+  │ pkg/services/accesscontrol/ │ 6     │ 🟠 HIGH     │ RBAC is foundational; 6 touchpoints                      │
+  ├─────────────────────────────┼───────┼─────────────┼──────────────────────────────────────────────────────────┤
+  │ pkg/services/ (rest)        │ 11    │ 🟡 MEDIUM   │ Lower cardinality; spread across domains                 │
+  ├─────────────────────────────┼───────┼─────────────┼──────────────────────────────────────────────────────────┤
+  │ pkg/api/                    │ 1     │ 🟢 LOW      │ Single file, but API layer is sensitive                  │
+  └─────────────────────────────┴───────┴─────────────┴──────────────────────────────────────────────────────────┘
+
+  ---
+  Recommended migration order:
+  1. Start with pkg/storage/unified/ (biggest impact per effort)
+  2. Then pkg/services/accesscontrol/ (security/audit relevance)
+  3. Remaining pkg/services/ packages in batches per domain
+  4. pkg/api/ last (API layer should follow patterns set by services)
+
+  Would you like me to help plan the migration strategy, create a task list, or analyze one of these packages in detail?
+
+✻ Cogitated for 1m 22s
+
+※ recap: Completed Sourcegraph analysis of Grafana's tracing patterns: identified 30 files using the global var tracer anti-pattern, with pkg/storage/unified (12 files) being the highest priority subsystem.
+  Next: create a migration plan for that subsystem. (disable recaps in /config)
+

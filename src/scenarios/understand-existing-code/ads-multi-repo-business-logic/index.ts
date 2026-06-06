@@ -5,7 +5,7 @@ import { withoutMCP, withMCP } from "./timeline";
 
 const metrics: PromptMetrics = {
   withoutMCP: { timeSeconds: 76, costUsd: 0.1524, quality: 0.22, toolCalls: 11 },
-  withMCP: { timeSeconds: 4 * 60 + 19, costUsd: 0.0943, quality: 0.93, toolCalls: 9 },
+  withMCP: { timeSeconds: 4 * 60 + 19, costUsd: 0.75, quality: 0.93, toolCalls: 9 },
 };
 
 export const adsMultiRepoBusinessLogicPrompt: ScenarioPrompt = {
