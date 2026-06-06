@@ -27,7 +27,7 @@ For offline demos: `npm run build && npx serve dist`
 |-----|----------|--------------|
 | 1 | Understanding existing code | microsoft/vscode |
 | 2 | Code reuse & consistency | apache/flink |
-| 3 | Feature development / planning | sourcegraph/sourcegraph |
+| 3 | Feature development / planning | microsoft/vscode |
 | 4 | Bug fixing & tests | grafana/grafana |
 | 5 | Investigating an incident | grafana/grafana |
 | 6 | Security | apache/kafka |

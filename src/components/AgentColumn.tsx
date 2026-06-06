@@ -17,6 +17,7 @@ interface AgentColumnProps {
   scenarioId?: string;
   promptId?: string;
   logContent?: string;
+  showConfidence?: boolean;
 }
 
 export function AgentColumn({
@@ -29,6 +30,7 @@ export function AgentColumn({
   scenarioId,
   promptId,
   logContent,
+  showConfidence = false,
 }: AgentColumnProps) {
   const isMcp = variant === "mcp";
   const showMissed =
@@ -81,10 +83,12 @@ export function AgentColumn({
         )}
       </div>
 
-      <ConfidenceMeter
-        value={state.confidence}
-        variant={isMcp ? "mcp" : "default"}
-      />
+      {showConfidence && (
+        <ConfidenceMeter
+          value={state.confidence}
+          variant={isMcp ? "mcp" : "default"}
+        />
+      )}
 
       <ExecutionMetricsBar
         metrics={metrics}
@@ -92,13 +96,23 @@ export function AgentColumn({
       />
 
       <div className="agent-column__body">
-        <MessageStream
-          userMessages={state.userMessages}
-          assistantMessages={state.assistantMessages}
-        />
-        {state.toolCalls.map((tool) => (
-          <ToolCallCard key={tool.id} tool={tool} />
-        ))}
+        {state.userMessages.length > 0 && (
+          <div className="agent-column__prompt">
+            <MessageStream
+              userMessages={state.userMessages}
+              assistantMessages={[]}
+            />
+          </div>
+        )}
+        <div className="agent-column__feed">
+          <MessageStream
+            userMessages={[]}
+            assistantMessages={state.assistantMessages}
+          />
+          {state.toolCalls.map((tool) => (
+            <ToolCallCard key={tool.id} tool={tool} />
+          ))}
+        </div>
       </div>
 
       {showMissed && (

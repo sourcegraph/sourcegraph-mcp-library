@@ -1,13 +1,14 @@
 import type { Scenario } from "../../types/scenario";
-import { userRoleFeaturePrompt } from "./user-role-feature";
+import { clipboardHistoryApiPrompt } from "./clipboard-history-api";
 
 export const featureDevelopmentPlan: Scenario = {
   id: "feature-development-plan",
   title: "Feature development",
   subtitle: "Plan mode & implementation planning with Deep Search",
-  repo: "sourcegraph/sourcegraph",
-  repoUrl: "https://github.com/sourcegraph/sourcegraph",
+  repo: "microsoft/vscode",
+  repoUrl: "https://github.com/microsoft/vscode",
+  showConfidence: false,
   prompts: [
-    userRoleFeaturePrompt,
+    clipboardHistoryApiPrompt,
   ],
 };

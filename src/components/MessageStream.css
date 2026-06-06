@@ -1,7 +1,13 @@
 .message-stream {
   padding: 16px 0;
-  flex: 1;
-  overflow-y: auto;
+}
+
+.agent-column__prompt .message-stream {
+  padding: 12px 0 8px;
+}
+
+.agent-column__feed .message-stream {
+  padding: 12px 0 0;
 }
 
 .message-stream--empty {

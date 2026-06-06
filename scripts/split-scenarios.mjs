@@ -53,7 +53,7 @@ function metricsKeyForPrompt(scenarioId, promptId) {
       "rpc-retry-consistency": "codeReuseRetry",
     },
     "feature-development-plan": {
-      "user-role-feature": "featureUserRole",
+      "clipboard-history-api": "featureClipboardHistory",
     },
     "bug-fixing-tests": {
       "dashboard-panel-regression": "bugPanelRegression",

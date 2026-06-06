@@ -6,7 +6,6 @@ export const withoutMCP: TimelineEvent[] = [
     type: "user",
     text: "Next.js 16 upgrade: quantify blast radius from removing `legacyBehavior`/`passHref`, compare with React Router `Link`, and identify codemod limits.",
   },
-  { at: 250, type: "confidence", value: 0 },
   {
     at: 500,
     type: "assistant",
@@ -27,7 +26,6 @@ export const withoutMCP: TimelineEvent[] = [
     args: "{ command: \"grep -r \\\"passHref\\\" .../next.js | ... | wc -l\" }",
     status: "done",
   },
-  { at: 2000, type: "confidence", value: 0 },
   {
     at: 2200,
     type: "tool",
@@ -35,7 +33,6 @@ export const withoutMCP: TimelineEvent[] = [
     args: "{ file: \"packages/next/src/client/app-dir/link.tsx\", range: \"585-591, 748-756\" }",
     status: "done",
   },
-  { at: 2700, type: "confidence", value: 0 },
   {
     at: 3000,
     type: "tool",
@@ -50,7 +47,6 @@ export const withoutMCP: TimelineEvent[] = [
     args: "{ file: \"packages/react-router/lib/dom/lib.tsx\", range: \"1045-1276\" }",
     status: "done",
   },
-  { at: 3900, type: "confidence", value: 0 },
   {
     at: 4200,
     type: "tool",
@@ -58,7 +54,6 @@ export const withoutMCP: TimelineEvent[] = [
     args: "{ command: \"grep -r \\\"import.*Link|export.*Link\\\" .../react-router\" }",
     status: "done",
   },
-  { at: 4800, type: "confidence", value: 0 },
   {
     at: 5100,
     type: "tool",
@@ -66,7 +61,6 @@ export const withoutMCP: TimelineEvent[] = [
     args: "{ file: \"packages/next-codemod/transforms/new-link.ts\", range: \"1-124\" }",
     status: "done",
   },
-  { at: 5600, type: "confidence", value: 0 },
   {
     at: 5900,
     type: "tool",
@@ -81,7 +75,6 @@ export const withoutMCP: TimelineEvent[] = [
     args: "{ command: \"git show 4b66771895 --stat && git show 5a4f1140f0 --stat\" }",
     status: "done",
   },
-  { at: 6800, type: "confidence", value: 0 },
   {
     at: 7100,
     type: "assistant",
@@ -127,7 +120,6 @@ export const withMCP: TimelineEvent[] = [
     type: "user",
     text: "Next.js 16 upgrade: quantify blast radius from removing `legacyBehavior`/`passHref`, compare with React Router `Link`, and identify codemod limits.",
   },
-  { at: 200, type: "confidence", value: 0 },
   {
     at: 400,
     type: "assistant",
@@ -141,7 +133,6 @@ export const withMCP: TimelineEvent[] = [
     args: "{ query: \"Aggregate file counts for legacyBehavior and passHref in github.com/vercel/next.js\" }",
     status: "done",
   },
-  { at: 1500, type: "confidence", value: 0 },
   {
     at: 1700,
     type: "tool",
@@ -149,7 +140,6 @@ export const withMCP: TimelineEvent[] = [
     args: "{ repo: \"github.com/vercel/next.js\", path: \"packages/next/src/client/app-dir/link.tsx\", range: \"585-591,748-756\" }",
     status: "done",
   },
-  { at: 2300, type: "confidence", value: 0 },
   {
     at: 2500,
     type: "tool",
@@ -171,7 +161,6 @@ export const withMCP: TimelineEvent[] = [
     args: "{ repo: \"github.com/remix-run/react-router\", path: \"packages/react-router/lib/dom/lib.tsx\", range: \"1045-1210\" }",
     status: "done",
   },
-  { at: 3600, type: "confidence", value: 0 },
   {
     at: 3900,
     type: "tool",
@@ -193,7 +182,6 @@ export const withMCP: TimelineEvent[] = [
     args: "{ repo: \"github.com/remix-run/react-router\", path: \"packages/react-router/index.ts\" }",
     status: "done",
   },
-  { at: 5000, type: "confidence", value: 0 },
   {
     at: 5300,
     type: "tool",
@@ -201,7 +189,6 @@ export const withMCP: TimelineEvent[] = [
     args: "{ repo: \"github.com/vercel/next.js\", path: \"packages/next-codemod/transforms/new-link.ts\", range: \"1-124\" }",
     status: "done",
   },
-  { at: 5800, type: "confidence", value: 0 },
   {
     at: 6100,
     type: "tool",
@@ -209,7 +196,6 @@ export const withMCP: TimelineEvent[] = [
     args: "{ repos: [\"github.com/vercel/next.js\"], messageTerms: [\"legacyBehavior\",\"passHref\",\"new-link\",\"remove legacy\"], files: [\"packages/next/src/client/\",\"errors/\"], count: 20 }",
     status: "done",
   },
-  { at: 7000, type: "confidence", value: 0 },
   {
     at: 7300,
     type: "assistant",

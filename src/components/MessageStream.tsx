@@ -23,11 +23,7 @@ export function MessageStream({
   }
 
   if (items.length === 0) {
-    return (
-      <div className="message-stream message-stream--empty">
-        <p>Waiting for prompt…</p>
-      </div>
-    );
+    return null;
   }
 
   return (

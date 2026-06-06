@@ -18,9 +18,9 @@ export const promptMetrics = {
     withoutMCP: { timeSeconds: 14 * 60, costUsd: 2.75 },
     withMCP: { timeSeconds: 5 * 60 + 20, costUsd: 0.98 },
   },
-  featureUserRole: {
-    withoutMCP: { timeSeconds: 35 * 60, costUsd: 8.4 },
-    withMCP: { timeSeconds: 12 * 60 + 15, costUsd: 2.65 },
+  featureClipboardHistory: {
+    withoutMCP: { timeSeconds: 9 * 60 + 23, costUsd: 1.82 },
+    withMCP: { timeSeconds: 8 * 60 + 1, costUsd: 1.21 },
   },
   bugPanelRegression: {
     withoutMCP: { timeSeconds: 26 * 60, costUsd: 5.2 },
