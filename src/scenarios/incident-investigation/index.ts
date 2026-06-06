@@ -1,5 +1,5 @@
 import type { Scenario } from "../../types/scenario";
-import { queryLatencySpikePrompt } from "./query-latency-spike";
+import { grafanaV38FieldConfigMigrationPrompt } from "./grafana-v38-fieldconfig-migration";
 
 export const incidentInvestigation: Scenario = {
   id: "incident-investigation",
@@ -7,7 +7,8 @@ export const incidentInvestigation: Scenario = {
   subtitle: "Trace regressions across services",
   repo: "grafana/grafana",
   repoUrl: "https://github.com/grafana/grafana",
+  showConfidence: true,
   prompts: [
-    queryLatencySpikePrompt,
+    grafanaV38FieldConfigMigrationPrompt,
   ],
 };
