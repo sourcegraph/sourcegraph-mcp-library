@@ -2,22 +2,30 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  margin: 0 16px 12px;
+  margin: 12px 16px 12px;
   padding: 10px 14px;
   border-radius: var(--radius-md);
   border: 1px solid var(--border-subtle);
   background: var(--bg-inset);
-  opacity: 0.45;
-  transition: opacity 0.35s ease, border-color 0.35s ease;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+  transition:
+    opacity var(--metrics-reveal-duration) ease,
+    visibility var(--metrics-reveal-duration) ease,
+    transform var(--metrics-reveal-duration) ease,
+    border-color var(--metrics-reveal-duration) ease;
 }
 
 .execution-metrics--visible {
   opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
 }
 
 .agent-column--mcp .execution-metrics--visible {
-  border-color: var(--brand-border);
-  background: var(--brand-bg);
+  border-color: var(--success-border);
+  background: var(--success-bg);
 }
 
 .execution-metrics__item {
@@ -43,7 +51,7 @@
 }
 
 .agent-column--mcp .execution-metrics--visible .execution-metrics__value {
-  color: var(--brand-bright);
+  color: var(--success);
 }
 
 .execution-metrics__divider {

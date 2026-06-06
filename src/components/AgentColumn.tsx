@@ -1,10 +1,8 @@
+import { memo } from "react";
 import type { ColumnState, ExecutionMetrics } from "../types/scenario";
 import { buildLogFilename, downloadLog } from "../utils/downloadLog";
 import { ExecutionMetricsBar } from "./ExecutionMetrics";
-import { ConfidenceMeter } from "./ConfidenceMeter";
-import { MessageStream } from "./MessageStream";
-import { MissedItems } from "./MissedItems";
-import { ToolCallCard } from "./ToolCallCard";
+import { ConversationStream } from "./ConversationStream";
 import "./AgentColumn.css";
 
 interface AgentColumnProps {
@@ -17,10 +15,10 @@ interface AgentColumnProps {
   scenarioId?: string;
   promptId?: string;
   logContent?: string;
-  showConfidence?: boolean;
+  logsFileExtension?: "log" | "json";
 }
 
-export function AgentColumn({
+function AgentColumnImpl({
   title,
   variant,
   state,
@@ -30,20 +28,15 @@ export function AgentColumn({
   scenarioId,
   promptId,
   logContent,
-  showConfidence = false,
+  logsFileExtension = "log",
 }: AgentColumnProps) {
   const isMcp = variant === "mcp";
-  const showMissed =
-    state.missedItems &&
-    state.missedItems.length > 0 &&
-    (!isMcp || state.completed);
-  const missedVariant = isMcp ? "complete" : "missed";
   const canDownloadLog = Boolean(scenarioId && promptId && logContent);
 
   const handleDownloadLog = () => {
     if (!scenarioId || !promptId || !logContent) return;
     downloadLog(
-      buildLogFilename(scenarioId, promptId, variant),
+      buildLogFilename(scenarioId, promptId, variant, logsFileExtension),
       logContent,
     );
   };
@@ -83,41 +76,16 @@ export function AgentColumn({
         )}
       </div>
 
-      {showConfidence && (
-        <ConfidenceMeter
-          value={state.confidence}
-          variant={isMcp ? "mcp" : "default"}
-        />
-      )}
-
       <ExecutionMetricsBar
         metrics={metrics}
         visible={state.completed}
       />
 
       <div className="agent-column__body">
-        {state.userMessages.length > 0 && (
-          <div className="agent-column__prompt">
-            <MessageStream
-              userMessages={state.userMessages}
-              assistantMessages={[]}
-            />
-          </div>
-        )}
-        <div className="agent-column__feed">
-          <MessageStream
-            userMessages={[]}
-            assistantMessages={state.assistantMessages}
-          />
-          {state.toolCalls.map((tool) => (
-            <ToolCallCard key={tool.id} tool={tool} />
-          ))}
-        </div>
+        <ConversationStream events={state.events} />
       </div>
-
-      {showMissed && (
-        <MissedItems items={state.missedItems} variant={missedVariant} />
-      )}
     </div>
   );
 }
+
+export const AgentColumn = memo(AgentColumnImpl);

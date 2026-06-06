@@ -6,19 +6,30 @@ export type TimelineEvent =
   | {
       at: number;
       type: "tool";
+      /**
+       * Optional stable identifier linking a `running` event to its later
+       * `done` event. When set, the player matches transitions by `id` and
+       * ignores `name`/`args` differences (so you can shorten `args` on the
+       * `done` event if you want). When omitted, the player falls back to
+       * matching the most recent still-running tool with identical
+       * `name + args`.
+       */
+      id?: string;
       name: string;
       args: string;
       status?: ToolStatus;
     }
-  | { at: number; type: "confidence"; value: number }
-  | { at: number; type: "missed"; items: string[] }
   | { at: number; type: "complete" };
 
 export interface ExecutionMetrics {
   /** Wall-clock time to complete the task end-to-end */
-  timeSeconds: number;
+  timeSeconds?: number;
   /** Estimated inference + tooling cost in USD */
-  costUsd: number;
+  costUsd?: number;
+  /** Quality / reward score, 0.0 to 1.0 */
+  quality?: number;
+  /** Total number of tool calls made during the run */
+  toolCalls?: number;
 }
 
 export interface PromptMetrics {
@@ -35,6 +46,22 @@ export interface ScenarioPromptLogs {
   withMCP: string;
 }
 
+/**
+ * A single dimension/row in the post-run quality breakdown table.
+ * Values are free-form strings so authors can mix percentages, fractions,
+ * qualitative labels, and unicode indicators (✓ / ✕ / ❌ / ✅) freely.
+ */
+export interface QualityBreakdownRow {
+  dimension: string;
+  /** Optional weight of this dimension in the composite score (e.g. "0.40"). */
+  weight?: string;
+  /** Optional plain-language description of what this dimension measures. */
+  definition?: string;
+  baseline: string;
+  mcp: string;
+  notes?: string;
+}
+
 export interface ScenarioPrompt {
   id: string;
   /** Short label for the demo picker in the sidebar */
@@ -42,11 +69,17 @@ export interface ScenarioPrompt {
   text: string;
   /** Display-only chip; not a user-facing toggle */
   environment?: RepoEnvironment;
+  repo?: string;
+  repoUrl?: string;
   metrics: PromptMetrics;
   withoutMCP: TimelineEvent[];
   withMCP: TimelineEvent[];
   /** Live execution logs for download (manually added to the repo) */
   logs: ScenarioPromptLogs;
+  /** File extension for downloaded logs: "log" (default) or "json" for trajectory files */
+  logsFileExtension?: "log" | "json";
+  /** Optional side-by-side scoring table shown below the two agent columns. */
+  qualityBreakdown?: QualityBreakdownRow[];
 }
 
 export interface Scenario {
@@ -60,39 +93,19 @@ export interface Scenario {
   prompts: ScenarioPrompt[];
 }
 
-export interface UserMessage {
-  id: string;
-  text: string;
-}
-
-export interface AssistantMessage {
-  id: string;
-  text: string;
-  isStreaming?: boolean;
-}
-
-export interface ToolCall {
-  id: string;
-  name: string;
-  args: string;
-  status: ToolStatus;
-}
+export type ConversationEvent =
+  | { type: "user"; id: string; text: string }
+  | { type: "assistant"; id: string; text: string; isStreaming?: boolean }
+  | { type: "tool"; id: string; name: string; args: string; status: ToolStatus }
+  | { type: "complete" };
 
 export interface ColumnState {
-  confidence: number;
-  userMessages: UserMessage[];
-  assistantMessages: AssistantMessage[];
-  toolCalls: ToolCall[];
-  missedItems: string[] | null;
+  events: ConversationEvent[];
   completed: boolean;
 }
 
 export const emptyColumnState = (): ColumnState => ({
-  confidence: 0,
-  userMessages: [],
-  assistantMessages: [],
-  toolCalls: [],
-  missedItems: null,
+  events: [],
   completed: false,
 });
 
@@ -122,6 +135,14 @@ export function formatCost(usd: number): string {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(usd);
+}
+
+export function formatQuality(q: number): string {
+  return q.toFixed(2);
+}
+
+export function formatToolCalls(n: number): string {
+  return n.toLocaleString("en-US");
 }
 
 export function savingsPercent(before: number, after: number): number {

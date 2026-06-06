@@ -100,17 +100,6 @@ export const withoutMCP: TimelineEvent[] = [
     args: '{ file_path: ".claude/plans/env-clipboardHistory.md" }',
     status: "done",
   },
-  {
-    at: 7200,
-    type: "missed",
-    items: [
-      "Real write path — $writeText → MainThreadClipboard → IClipboardService never traced",
-      "NativeClipboardService / BrowserClipboardService — concrete implementations not found",
-      "Scope boundary — assumed OS-level clipboard history from other apps",
-      "Mechanism — speculative readHistory?() instead of event + ring buffer",
-      "Verification — macOS System Settings clipboard history step likely invalid",
-    ],
-  },
   { at: 7600, type: "complete" },
 ];
 
@@ -196,17 +185,6 @@ export const withMCP: TimelineEvent[] = [
     name: "Write",
     args: '{ file_path: ".claude/plans/env-clipboardHistory.md" }',
     status: "done",
-  },
-  {
-    at: 7600,
-    type: "missed",
-    items: [
-      "Write path — $writeText → MainThreadClipboard → IClipboardService traced",
-      "NativeClipboardService + BrowserClipboardService — located in upstream index",
-      "Scope boundary — VS Code–originated writes only, honestly bounded",
-      "Mechanism — onDidWriteText event + ring buffer, implementable design",
-      "Verification — cross-process write capture, no bogus OS history steps",
-    ],
   },
   { at: 8000, type: "complete" },
 ];

@@ -1,67 +1,118 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   ColumnState,
+  ConversationEvent,
   ScenarioPrompt,
   TimelineEvent,
-  ToolCall,
 } from "../types/scenario";
 import { emptyColumnState } from "../types/scenario";
+import {
+  COMPLETE_BUFFER_MS,
+  PLAYBACK_TAIL_MS,
+  STREAM_CHARS_PER_TICK,
+  STREAM_CHUNK_MS,
+} from "../utils/playbackTiming";
+import { validateScenario } from "../utils/validateScenario";
 
-function getMaxTime(events: TimelineEvent[]): number {
-  return events.reduce((max, e) => Math.max(max, e.at), 0);
+function eventRenderEnd(event: TimelineEvent): number {
+  const streamMs =
+    event.type === "assistant" && event.stream
+      ? Math.ceil(event.text.length / STREAM_CHARS_PER_TICK) * STREAM_CHUNK_MS
+      : 0;
+  return event.at + streamMs;
+}
+
+/**
+ * Stable React key for a tool card. Uses the explicit `id` when present
+ * so a `running` and its later `done` event collide on the same key even
+ * if `args` was shortened.
+ */
+function toolCardId(
+  event: Extract<TimelineEvent, { type: "tool" }>,
+): string {
+  return event.id ? `tool-${event.id}` : `tool-${event.at}-${event.name}`;
+}
+
+/** Time at which the last non-complete event has fully rendered. */
+function getContentEndTime(events: TimelineEvent[]): number {
+  return events.reduce(
+    (max, event) =>
+      event.type === "complete" ? max : Math.max(max, eventRenderEnd(event)),
+    0,
+  );
 }
 
 function applyEvent(state: ColumnState, event: TimelineEvent): ColumnState {
   const next = { ...state };
 
   switch (event.type) {
-    case "user":
-      next.userMessages = [
-        ...next.userMessages,
-        { id: `user-${event.at}`, text: event.text },
-      ];
+    case "user": {
+      const convEvent: ConversationEvent = {
+        type: "user",
+        id: `user-${event.at}`,
+        text: event.text,
+      };
+      next.events = [...next.events, convEvent];
       break;
-    case "assistant":
-      next.assistantMessages = [
-        ...next.assistantMessages,
-        {
-          id: `asst-${event.at}`,
-          text: event.text,
-          isStreaming: event.stream ?? false,
-        },
-      ];
+    }
+    case "assistant": {
+      const convEvent: ConversationEvent = {
+        type: "assistant",
+        id: `asst-${event.at}`,
+        text: event.text,
+        isStreaming: event.stream ?? false,
+      };
+      next.events = [...next.events, convEvent];
       break;
+    }
     case "tool": {
-      const existing = next.toolCalls.findIndex(
-        (t) => t.name === event.name && t.args === event.args,
-      );
-      const tool: ToolCall = {
-        id: `tool-${event.at}-${event.name}`,
+      // When the same tool call transitions running → done, reuse the
+      // existing React key so the card updates in place instead of
+      // remounting (which would reset expanded/copied state and replay
+      // the entry animation).
+      //
+      // Matching strategy, in order:
+      //   1. Explicit `id` on the timeline event (most robust — survives
+      //      `args` being shortened on the `done` event).
+      //   2. Same `name + args` AND existing status is still "running"
+      //      (so the same tool fired twice doesn't stomp on the first).
+      const existing = next.events.findIndex((e) => {
+        if (e.type !== "tool") return false;
+        if (event.id && e.id === toolCardId(event)) return true;
+        return (
+          e.status === "running" &&
+          e.name === event.name &&
+          e.args === event.args
+        );
+      });
+      const existingEvent =
+        existing >= 0 ? next.events[existing] : undefined;
+      const id =
+        existingEvent?.type === "tool"
+          ? existingEvent.id
+          : toolCardId(event);
+      const convEvent: ConversationEvent = {
+        type: "tool",
+        id,
         name: event.name,
         args: event.args,
         status: event.status ?? "done",
       };
       if (existing >= 0) {
-        const updated = [...next.toolCalls];
-        updated[existing] = tool;
-        next.toolCalls = updated;
+        const updated = [...next.events];
+        updated[existing] = convEvent;
+        next.events = updated;
       } else {
-        next.toolCalls = [...next.toolCalls, tool];
+        next.events = [...next.events, convEvent];
       }
       break;
     }
-    case "confidence":
-      next.confidence = event.value;
-      break;
-    case "missed":
-      next.missedItems = event.items;
-      break;
     case "complete":
       next.completed = true;
-      next.assistantMessages = next.assistantMessages.map((m) => ({
-        ...m,
-        isStreaming: false,
-      }));
+      next.events = next.events.map((e) =>
+        e.type === "assistant" ? { ...e, isStreaming: false } : e,
+      );
+      next.events = [...next.events, { type: "complete" }];
       break;
   }
 
@@ -76,20 +127,24 @@ function streamAssistantText(
 ) {
   let index = 0;
   const interval = setInterval(() => {
-    index += 3;
+    index += STREAM_CHARS_PER_TICK;
     const partial = fullText.slice(0, index);
     setState((prev) => ({
       ...prev,
-      assistantMessages: prev.assistantMessages.map((m) =>
-        m.id === messageId ? { ...m, text: partial } : m,
+      events: prev.events.map((e) =>
+        e.type === "assistant" && e.id === messageId
+          ? { ...e, text: partial }
+          : e,
       ),
     }));
     if (index >= fullText.length) {
       clearInterval(interval);
       setState((prev) => ({
         ...prev,
-        assistantMessages: prev.assistantMessages.map((m) =>
-          m.id === messageId ? { ...m, text: fullText, isStreaming: false } : m,
+        events: prev.events.map((e) =>
+          e.type === "assistant" && e.id === messageId
+            ? { ...e, text: fullText, isStreaming: false }
+            : e,
         ),
       }));
     }
@@ -122,65 +177,67 @@ export function useScenarioPlayer(prompt: ScenarioPrompt | null) {
   useEffect(() => {
     if (!prompt) return;
 
+    if (import.meta.env.DEV) {
+      validateScenario(prompt);
+    }
+
     clearAll();
     setWithoutState(emptyColumnState());
     setWithState(emptyColumnState());
 
-    const withoutMax = getMaxTime(prompt.withoutMCP);
-    const withMax = getMaxTime(prompt.withMCP);
-    const totalDuration = Math.max(withoutMax, withMax) + 500;
+    const reducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    // Each column's natural finish is "last content fully rendered + small buffer".
+    // We override any per-scenario `complete.at` so authors don't each have to
+    // tune dead time. Reduced motion skips streaming, so use raw `at` values.
+    const naturalEnd = (events: TimelineEvent[]) =>
+      reducedMotion
+        ? events.reduce(
+            (m, e) => (e.type === "complete" ? m : Math.max(m, e.at)),
+            0,
+          )
+        : getContentEndTime(events);
+    const withoutEnd = naturalEnd(prompt.withoutMCP) + COMPLETE_BUFFER_MS;
+    const withEnd = naturalEnd(prompt.withMCP) + COMPLETE_BUFFER_MS;
+    const totalDuration = Math.max(withoutEnd, withEnd) + PLAYBACK_TAIL_MS;
     setIsPlaying(true);
 
     const schedule = (
       events: TimelineEvent[],
       setState: React.Dispatch<React.SetStateAction<ColumnState>>,
+      completeAt: number,
     ) => {
       for (const event of events) {
+        const at = event.type === "complete" ? completeAt : event.at;
         const timer = setTimeout(() => {
-          if (event.type === "assistant" && event.stream) {
+          if (event.type === "assistant" && event.stream && !reducedMotion) {
             const messageId = `asst-${event.at}`;
             setState((prev) =>
-              applyEvent(prev, {
-                ...event,
-                text: "",
-                stream: true,
-              }),
+              applyEvent(prev, { ...event, text: "", stream: true }),
             );
-            const reducedMotion = window.matchMedia(
-              "(prefers-reduced-motion: reduce)",
-            ).matches;
             const interval = streamAssistantText(
               setState,
               messageId,
               event.text,
-              reducedMotion ? 0 : 18,
+              STREAM_CHUNK_MS,
             );
-            if (reducedMotion) {
-              clearInterval(interval);
-              setState((prev) =>
-                applyEvent(
-                  {
-                    ...prev,
-                    assistantMessages: prev.assistantMessages.filter(
-                      (m) => m.id !== messageId,
-                    ),
-                  },
-                  event,
-                ),
-              );
-            } else {
-              intervalsRef.current.push(interval);
-            }
+            intervalsRef.current.push(interval);
+          } else if (event.type === "assistant" && event.stream) {
+            // Reduced motion: render the assistant message in full immediately.
+            setState((prev) =>
+              applyEvent(prev, { ...event, stream: false }),
+            );
           } else {
             setState((prev) => applyEvent(prev, event));
           }
-        }, event.at);
+        }, at);
         timersRef.current.push(timer);
       }
     };
 
-    schedule(prompt.withoutMCP, setWithoutState);
-    schedule(prompt.withMCP, setWithState);
+    schedule(prompt.withoutMCP, setWithoutState, withoutEnd);
+    schedule(prompt.withMCP, setWithState, withEnd);
 
     const endTimer = setTimeout(() => {
       setIsPlaying(false);

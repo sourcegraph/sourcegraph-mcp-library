@@ -1,7 +1,7 @@
 import type { Scenario } from "../../types/scenario";
 import { crossRepoDiscoveryPrompt } from "./cross-repo-discovery";
-import { architectureComprehensionPrompt } from "./architecture-comprehension";
 import { businessLogicPrompt } from "./business-logic";
+import { flinkCheckpointArchPrompt } from "./flink-checkpoint-arch-001";
 
 export const understandExistingCode: Scenario = {
   id: "understand-existing-code",
@@ -11,7 +11,7 @@ export const understandExistingCode: Scenario = {
   repoUrl: "https://github.com/microsoft/vscode",
   prompts: [
     crossRepoDiscoveryPrompt,
-    architectureComprehensionPrompt,
     businessLogicPrompt,
+    flinkCheckpointArchPrompt,
   ],
 };

@@ -4,3 +4,8 @@ declare module "*.claude.log?raw" {
   const content: string;
   export default content;
 }
+
+declare module "*.trajectory.json?raw" {
+  const content: string;
+  export default content;
+}

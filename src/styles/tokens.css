@@ -68,4 +68,8 @@
   --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.5), 0 12px 40px rgba(0, 0, 0, 0.4);
   --transition-fast: 150ms ease;
   --transition-normal: 250ms ease;
+
+  /* Metrics-bar fade-in once a column completes. Paired with the JS-side
+     constants in src/utils/playbackTiming.ts — keep them roughly in sync. */
+  --metrics-reveal-duration: 180ms;
 }
