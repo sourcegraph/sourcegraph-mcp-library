@@ -1,5 +1,6 @@
 import type { Scenario } from "../../types/scenario";
 import { clipboardHistoryApiPrompt } from "./clipboard-history-api";
+import { fastapiRateLimitingPrompt } from "./fastapi-rate-limiting";
 
 export const featureDevelopmentPlan: Scenario = {
   id: "feature-development-plan",
@@ -10,5 +11,6 @@ export const featureDevelopmentPlan: Scenario = {
   showConfidence: false,
   prompts: [
     clipboardHistoryApiPrompt,
+    fastapiRateLimitingPrompt,
   ],
 };
