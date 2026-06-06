@@ -207,11 +207,7 @@ This scenario has three sub-demos. Lead with **Architecture comprehension** (Fli
 ## Scenario 4 — Bug Fixing & Tests
 
 
-> **Note:** This scenario currently has a placeholder sub-demo 
-
-#### TELL
-
-> "Speed and cost matter, but **correct root cause on the first pass** is what saves engineering time. That's the outcome better context delivers."
+ **Note:** This scenario currently has a placeholder sub-demo 
 
 ---
 
