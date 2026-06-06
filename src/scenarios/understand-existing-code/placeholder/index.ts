@@ -4,8 +4,8 @@ import withMcpLog from "./with-mcp.claude.log?raw";
 import { withoutMCP, withMCP } from "./timeline";
 
 const metrics: PromptMetrics = {
-  withoutMCP: { timeSeconds: 22 * 60, costUsd: 4.85 },
-  withMCP: { timeSeconds: 7 * 60 + 25, costUsd: 1.52 },
+  withoutMCP: { timeSeconds: 22 * 60, costUsd: 4.85, quality: 0.36, toolCalls: 1 },
+  withMCP: { timeSeconds: 7 * 60 + 25, costUsd: 1.52, quality: 0.91, toolCalls: 5 },
 };
 
 export const placeholderPrompt: ScenarioPrompt = {
