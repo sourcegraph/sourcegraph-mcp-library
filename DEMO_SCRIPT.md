@@ -206,28 +206,8 @@ This scenario has three sub-demos. Lead with **Architecture comprehension** (Fli
 
 ## Scenario 4 — Bug Fixing & Tests
 
-**Press `4`** | **Repo:** `grafana/grafana`
 
-> **Note:** This scenario currently has a placeholder sub-demo (metrics only, no finalized prompt/timeline). Use the talking track below until the real Grafana bug-fix run is wired in.
-
-#### TELL
-
-> "Bug fixing is where wrong context is most dangerous. An agent that confidently points at the wrong function sends your engineer on a half-day debug detour — and the fix may ship without the right test coverage."
-
-> "The pattern we expect: without MCP, the agent greps for symptoms, reads tangential files, and proposes a fix that matches the error message but not the root cause. With MCP, semantic search lands on the failing branch, the agent traces the call chain, and proposes a targeted fix with the right test file."
-
-#### SHOW (when populated)
-
-> "Watch for three signals:
-> 1. **Root cause accuracy** — correct function and line, not 'appears to be around line 116'
-> 2. **Test coverage** — does it find the existing test suite and add the right case?
-> 3. **Tool efficiency** — baseline thrashes; MCP goes straight to the migration/fix path"
-
-**Placeholder metrics to preview:** ~26 min / $5.20 without MCP → ~9 min 40s / $1.85 with MCP
-
-#### TELL
-
-> "Speed and cost matter, but **correct root cause on the first pass** is what saves engineering time. That's the outcome better context delivers."
+ **Note:** This scenario currently has a placeholder sub-demo 
 
 ---
 
