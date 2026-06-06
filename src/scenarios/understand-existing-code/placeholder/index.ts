@@ -4,15 +4,15 @@ import withMcpLog from "./with-mcp.claude.log?raw";
 import { withoutMCP, withMCP } from "./timeline";
 
 const metrics: PromptMetrics = {
-  withoutMCP: { timeSeconds: 26 * 60, costUsd: 5.2 },
-  withMCP: { timeSeconds: 9 * 60 + 40, costUsd: 1.85 },
+  withoutMCP: { timeSeconds: 22 * 60, costUsd: 4.85 },
+  withMCP: { timeSeconds: 7 * 60 + 25, costUsd: 1.52 },
 };
 
-export const dashboardPanelRegressionPrompt: ScenarioPrompt = {
-  id: "dashboard-panel-regression",
-  label: "Dashboard panel upgrade regression",
-  environment: "mono-repo",
-  text: "Dashboard panels disappear after upgrade from 10.2 to 10.3. Fix the regression.",
+export const placeholderPrompt: ScenarioPrompt = {
+  id: "placeholder",
+  label: "placeholder",
+  environment: "multi-repo",
+  text: "placeholder",
   metrics,
   withoutMCP,
   withMCP,

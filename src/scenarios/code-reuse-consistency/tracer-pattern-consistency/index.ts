@@ -10,10 +10,9 @@ const metrics: PromptMetrics = {
 
 const promptText = `In the Grafana backend, the preferred pattern for tracing is to inject a tracer via the struct (e.g. s.tracer.Start(ctx, "...")), which makes services testable and tracers swappable. However, many files bypass this and declare a package-level global tracer using var tracer = otel.Tracer(...) instead.
 
-Find all production Go files under pkg/ that use the global var tracer = otel.Tracer(...) pattern
-Show an example of the correct injected pattern being used in a service
-Are there any files that mix both — using an injected tracer in some methods but falling back to the global in others?
-Which packages have the most global tracer usages and should be prioritized for migration?`;
+1) Find all production Go files under pkg/ that use the global var tracer = otel.Tracer(...) pattern
+2) Show an example of the correct injected pattern being used in a service. Are there any files that mix both — using an injected tracer in some methods but falling back to the global in others?
+3) Which packages have the most global tracer usages and should be prioritized for migration?`;
 
 export const tracerPatternConsistencyPrompt: ScenarioPrompt = {
   id: "tracer-pattern-consistency",
