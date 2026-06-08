@@ -294,7 +294,7 @@ This scenario has three sub-demos. Lead with **Architecture comprehension** (Fli
 
 ### TELL
 
-> "Six different tasks — onboarding, consistency, feature planning, bug fixing, incidents, security. The pattern repeats:"
+> "Different use cases — Code Understanding, consistency, feature planning, bug fixing, incidents and security. The pattern repeats:"
 
 | Outcome | What MCP changes |
 |--------|------------------|
@@ -305,17 +305,4 @@ This scenario has three sub-demos. Lead with **Architecture comprehension** (Fli
 
 > "Sourcegraph MCP doesn't replace your agent. It gives your agent **eyes on the whole codebase** — so every token spent is working toward the right answer."
 
-> "Questions? We can replay any scenario, download the raw logs, or walk through connecting MCP to your agent setup."
 
----
-
-## Quick reference — which demo to lead with
-
-| Key | Scenario | Lead demo | Headline stat |
-|-----|----------|-----------|---------------|
-| `1` | Understanding code | Flink checkpoint arch | 5× quality, 104→44 tool calls |
-| `2` | Code reuse | Tracer consistency | +1 hidden variant, fewer calls |
-| `3` | Feature development | Clipboard history API | 0.38→0.94 quality, 144→50 tool calls |
-| `4` | Bug fixing | *(placeholder — WIP)* | ~64% time savings (preview) |
-| `5` | Incident | V38 fieldConfig drop | Wrong answer fast vs right answer |
-| `6` | Security | Kafka ACL audit | 483→42 tool calls, 0→1.0 quality |
