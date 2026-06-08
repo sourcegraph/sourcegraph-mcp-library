@@ -165,18 +165,23 @@ This scenario has three sub-demos. Lead with **Architecture comprehension** (Fli
 **Without MCP:**
 
 - **144 tool calls**, two explore subagents (66 + 70 uses)
-- Never reaches `src/` — reverse-engineers from a Copilot extension fixture
-- Assumes OS-level clipboard history exists
-- Proposes speculative `readHistory?()` API
+- Stays in `extensions/` — never reads local `src/`
+- Reverse-engineers from a Copilot test fixture (`extHost.api.impl.ts`)
+- Produces a detailed 5-layer architecture write-up, but paths are inferred upstream references — not files it actually read locally
+- Assumes OS-level clipboard history exists (includes a macOS System Settings verification step)
+- Proposes speculative `IClipboardService.readHistory?()` with single-item fallback
 - Quality **0.38**
 
 **With MCP:**
 
-- Two Deep Search queries + three targeted reads
-- Pulls real upstream files: `mainThreadClipboard.ts`, `NativeClipboardService`, `BrowserClipboardService`
+- **50 tool calls** total (144 → 50, ~65% fewer) — not just search-and-read; two explore subagents also ran (10 + 32 uses), but far less thrashing overall
+- Two Deep Search queries + three targeted upstream reads via MCP
+- Pulls real indexed files from `github.com/microsoft/vscode`: `mainThreadClipboard.ts`, `NativeClipboardService`, `BrowserClipboardService`
 - Designs a ring buffer fed by `onDidWriteText` — grounded in actual write path
-- Correctly scopes: VS Code-originated writes only, not OS clipboard
-- Quality **0.94**, ~34% lower cost, ~50 fewer tool calls
+- Correctly scopes: VS Code–mediated writes only, not native OS clipboard changes from other apps
+- Quality **0.94**, ~34% lower cost ($1.82 → $1.21); time only modestly faster (9m 23s → 8m 1s) — the win here is quality + cost + tool efficiency
+
+> **Methodology note:** The MCP run's prompt includes "Use Sourcegraph Deep Search." Mention this if asked about apples-to-apples fairness.
 
 #### TELL
 
