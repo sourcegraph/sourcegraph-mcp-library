@@ -211,8 +211,51 @@ This scenario has three sub-demos. Lead with **Architecture comprehension** (Fli
 
 ## Scenario 4 — Bug Fixing & Tests
 
+**Press `4`** | **Tab:** DuckLake repeated-INSERT IO error (wasm runtime) | **Repos:** `duckdb/duckdb`, `duckdb/ducklake`, `duckdb/duckdb-wasm` (multi-repo)
 
- **Note:** This scenario currently has a placeholder sub-demo 
+#### TELL — The scenario
+
+> "You're debugging a DuckLake INSERT failure on the DuckDB WASM **node** runtime. The first INSERT succeeds; every INSERT after that throws:"
+
+> `IO Error: Cannot write to "<data_path>/main/events" - it exists and is a file, not a directory!`
+
+> "The prompt asks for root cause **and** a fix — across three codebases: DuckDB core (COPY operator), the DuckLake extension (INSERT write path), and duckdb-wasm (C bindings + node runtime filesystem). This is a classic cross-layer bug: the error message points at one layer, but the semantics bug lives in another."
+
+#### SHOW — Run the demo
+
+> "Both sides succeed here — that's intentional. The story isn't 'MCP finds the bug, baseline doesn't.' It's **how much exploration it takes** to trace a failure across three repos and land a correct patch."
+
+**Call out on Without MCP (~4m 5s, $1.38):**
+
+- **39 tool calls** — local grep, find, and read across all three checked-out repos
+- Traces the full chain: `ducklake_insert.cpp` → `physical_copy_to_file.cpp` → `web_filesystem.cc` → `runtime_node.ts`
+- Root cause: `checkFile` / `checkDirectory` use `fs.existsSync()`, which returns true for directories too — unlike native DuckDB's `S_ISREG` / `S_ISDIR` semantics
+- Ships the right fix in `runtime_node.ts`, but needs **5 edits** (iterates through `throwIfNoEntry` and `@types/node` version edge cases)
+- Quality **0.85**
+
+**Call out on With MCP (~2m 53s, $1.10):**
+
+- **23 tool calls** — **13 Sourcegraph calls** to jump repos without scattered bash/find
+- Same root cause, same patch — cites `ducklake_insert.cpp:563–574` and `physical_copy_to_file.cpp:2589–2611` from indexed reads
+- Lands the fix in **2 edits**
+- ~29% faster, ~20% cheaper
+- Quality **0.96**
+
+**Expand Quality Breakdown:**
+
+- Root cause accuracy: both correct ✓
+- Causal chain precision: baseline grep-driven → MCP line-level cross-repo refs ✓
+- Fix implementation: both correct; MCP fewer edit iterations
+- Research efficiency: 39 calls → 23 calls
+- Composite: **0.85 → 0.96**
+
+#### TELL — The takeaway
+
+> "When the bug spans DuckLake, DuckDB core, and the WASM node runtime, local grep works — if you have all three repos cloned and patience for 39 tool calls."
+
+> "MCP still wins: same correct diagnosis and patch, but with targeted cross-repo reads instead of directory walks. For bug fixing across services or extension boundaries, that's fewer dead ends and a faster path to the file you actually need to edit."
+
+> "Download the logs if anyone asks whether both runs really implemented the fix — they're full transcripts from the harness."
 
 ---
 

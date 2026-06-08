@@ -1,5 +1,5 @@
 import type { Scenario } from "../../types/scenario";
-import { placeholderPrompt } from "./placeholder";
+import { duckdbDucklakeInsertPrompt } from "./duckdb-ducklake-insert";
 
 export const bugFixingTests: Scenario = {
   id: "bug-fixing-tests",
@@ -8,6 +8,6 @@ export const bugFixingTests: Scenario = {
   repo: "grafana/grafana",
   repoUrl: "https://github.com/grafana/grafana",
   prompts: [
-    placeholderPrompt,
+    duckdbDucklakeInsertPrompt,
   ],
 };
