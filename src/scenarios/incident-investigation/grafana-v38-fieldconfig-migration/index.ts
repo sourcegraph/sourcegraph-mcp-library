@@ -33,7 +33,7 @@ export const grafanaV38FieldConfigMigrationPrompt: ScenarioPrompt = {
       baseline: "Wrong path ✕",
       mcp: "Correct: guarded migrateOverrides() ✓",
       notes:
-        "Baseline blamed defaults migration (lines 116–127) and cleanupFieldConfigDefaults(). MCP identified the overrides path: migrateOverrides() was skipped when defaults.custom was absent — matching the upstream fix in commit 26d36ec.",
+        "Baseline blamed defaults migration (lines 116–127) and cleanupFieldConfigDefaults(). MCP identified the overrides path: migrateOverrides() was skipped when defaults.custom was absent - matching the upstream fix in commit 26d36ec.",
     },
     {
       dimension: "Precision",
@@ -53,7 +53,7 @@ export const grafanaV38FieldConfigMigrationPrompt: ScenarioPrompt = {
       baseline: "None",
       mcp: "Move migrateOverrides() outside guard ✓",
       notes:
-        "MCP states the concrete fix: decouple defaults migration from overrides migration so migrateOverrides(fieldConfig) always runs. Baseline stops at hypotheses — an engineer would still need to debug manually.",
+        "MCP states the concrete fix: decouple defaults migration from overrides migration so migrateOverrides(fieldConfig) always runs. Baseline stops at hypotheses - an engineer would still need to debug manually.",
     },
     {
       dimension: "Signal vs. noise",
@@ -73,7 +73,7 @@ export const grafanaV38FieldConfigMigrationPrompt: ScenarioPrompt = {
       baseline: "$0.092",
       mcp: "$0.076 (−17%) ✓",
       notes:
-        "MCP delivered a higher-confidence answer at lower cost despite taking 30s longer (78s vs 48s). The risk demonstrated isn't 'no answer' — it's 'plausible wrong answer,' which is more expensive downstream.",
+        "MCP delivered a higher-confidence answer at lower cost despite taking 30s longer (78s vs 48s). The risk demonstrated isn't 'no answer' - it's 'plausible wrong answer,' which is more expensive downstream.",
     },
     {
       dimension: "Composite quality",

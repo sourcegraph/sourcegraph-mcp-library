@@ -11,7 +11,7 @@ const metrics: PromptMetrics = {
 const promptText = `In the Grafana backend, the preferred pattern for tracing is to inject a tracer via the struct (e.g. s.tracer.Start(ctx, "...")), which makes services testable and tracers swappable. However, many files bypass this and declare a package-level global tracer using var tracer = otel.Tracer(...) instead.
 
 1) Find all production Go files under pkg/ that use the global var tracer = otel.Tracer(...) pattern
-2) Show an example of the correct injected pattern being used in a service. Are there any files that mix both — using an injected tracer in some methods but falling back to the global in others?
+2) Show an example of the correct injected pattern being used in a service. Are there any files that mix both - using an injected tracer in some methods but falling back to the global in others?
 3) Which packages have the most global tracer usages and should be prioritized for migration?`;
 
 export const tracerPatternConsistencyPrompt: ScenarioPrompt = {
@@ -37,7 +37,7 @@ export const tracerPatternConsistencyPrompt: ScenarioPrompt = {
       baseline: "29 files ✓ (full list)",
       mcp: "30 files (no full list)",
       notes:
-        "MCP found pkg/services/setting/service.go — a wrapped global (`var tracer tracing.Tracer = &settingTracer{otel.Tracer(...)}`) that baseline grep for `var tracer = otel.Tracer` missed. Baseline printed all 29 paths; MCP grouped by package only.",
+        "MCP found pkg/services/setting/service.go - a wrapped global (`var tracer tracing.Tracer = &settingTracer{otel.Tracer(...)}`) that baseline grep for `var tracer = otel.Tracer` missed. Baseline printed all 29 paths; MCP grouped by package only.",
     },
     {
       dimension: "Injected Pattern Example",
@@ -47,7 +47,7 @@ export const tracerPatternConsistencyPrompt: ScenarioPrompt = {
       baseline: "bus.go + expr/service.go ✓",
       mcp: "cloudmigration/s3.go ✓",
       notes:
-        "Both valid. Baseline cited core infra (InProcBus) and expr Service with ProvideService. MCP cited S3 with constructor injection and a full s3.tracer.Start() call site — slightly better as an end-to-end service example.",
+        "Both valid. Baseline cited core infra (InProcBus) and expr Service with ProvideService. MCP cited S3 with constructor injection and a full s3.tracer.Start() call site - slightly better as an end-to-end service example.",
     },
     {
       dimension: "Mixed Pattern Detection",
@@ -57,7 +57,7 @@ export const tracerPatternConsistencyPrompt: ScenarioPrompt = {
       baseline: "0 mixed (grep-only)",
       mcp: "0 mixed + 1 variant ✓",
       notes:
-        "Both correctly ruled out pure mixing. MCP alone surfaced setting/service.go: implements tracing.Tracer but still initializes at package scope — a migration edge case baseline's struct-field grep would not catch.",
+        "Both correctly ruled out pure mixing. MCP alone surfaced setting/service.go: implements tracing.Tracer but still initializes at package scope - a migration edge case baseline's struct-field grep would not catch.",
     },
     {
       dimension: "Migration Prioritization",

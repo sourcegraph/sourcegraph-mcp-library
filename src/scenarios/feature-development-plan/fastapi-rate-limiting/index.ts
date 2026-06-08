@@ -31,7 +31,7 @@ export const fastapiRateLimitingPrompt: ScenarioPrompt = {
       baseline: "Partial",
       mcp: "Complete ✓",
       notes:
-        "Baseline only noted that dependencies run after middleware. MCP produced a full comparison table — granularity, exception handling via ExceptionMiddleware, DI composability — directly answering the prompt.",
+        "Baseline only noted that dependencies run after middleware. MCP produced a full comparison table - granularity, exception handling via ExceptionMiddleware, DI composability - directly answering the prompt.",
     },
     {
       dimension: "Client IP / Request Metadata",
@@ -51,7 +51,7 @@ export const fastapiRateLimitingPrompt: ScenarioPrompt = {
       baseline: "Conceptual",
       mcp: "Line-level ✓",
       notes:
-        "Both plans cover Request/Response injection and the security-class __call__ pattern. Baseline uniquely caught Depends(use_cache=False) — critical for counters. MCP cited solve_dependencies() at utils.py:715-716 and argued event-loop atomicity removes the need for asyncio.Lock.",
+        "Both plans cover Request/Response injection and the security-class __call__ pattern. Baseline uniquely caught Depends(use_cache=False) - critical for counters. MCP cited solve_dependencies() at utils.py:715-716 and argued event-loop atomicity removes the need for asyncio.Lock.",
     },
     {
       dimension: "RateLimiter Design",

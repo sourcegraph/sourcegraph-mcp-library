@@ -12,7 +12,7 @@ export const clipboardHistoryApiPrompt: ScenarioPrompt = {
   id: "clipboard-history-api",
   label: "Clipboard history extension API",
   environment: "mono-repo",
-  text: "Help me plan a new extension API for reading system clipboard history. Show me how existing extension APIs are structured — from the API declaration in vscode.d.ts, through the main process implementation, to the IPC bridge between renderer and host — then give me a step-by-step plan for adding a new env.clipboardHistory API following the same pattern.",
+  text: "Help me plan a new extension API for reading system clipboard history. Show me how existing extension APIs are structured - from the API declaration in vscode.d.ts, through the main process implementation, to the IPC bridge between renderer and host - then give me a step-by-step plan for adding a new env.clipboardHistory API following the same pattern.",
   metrics,
   withoutMCP,
   withMCP,
@@ -25,7 +25,7 @@ export const clipboardHistoryApiPrompt: ScenarioPrompt = {
       dimension: "Partial Clone Response",
       weight: "20%",
       definition:
-        "Both runs had extensions/ only — no src/ core. How did each run compensate?",
+        "Both runs had extensions/ only - no src/ core. How did each run compensate?",
       baseline: "Inferred from fixture",
       mcp: "Read upstream via MCP ✓",
       notes:
@@ -49,7 +49,7 @@ export const clipboardHistoryApiPrompt: ScenarioPrompt = {
       baseline: "0 platform impls",
       mcp: "3 core files ✓",
       notes:
-        "MCP surfaced mainThreadClipboard.ts, electron-browser/clipboardService.ts (NativeClipboardService), and browser/clipboardService.ts. Local search never located these — only the Copilot extension fixture.",
+        "MCP surfaced mainThreadClipboard.ts, electron-browser/clipboardService.ts (NativeClipboardService), and browser/clipboardService.ts. Local search never located these - only the Copilot extension fixture.",
     },
     {
       dimension: "Feature Scope Accuracy",
@@ -59,7 +59,7 @@ export const clipboardHistoryApiPrompt: ScenarioPrompt = {
       baseline: "Assumed OS history",
       mcp: "VS Code writes only ✓",
       notes:
-        "Baseline assumed VS Code can read OS-level system clipboard history and wrote a verification step to enable macOS \"Use clipboard history\" in System Settings. MCP correctly states history tracks VS Code-originated writes only — not native OS clipboard changes from other apps.",
+        "Baseline assumed VS Code can read OS-level system clipboard history and wrote a verification step to enable macOS \"Use clipboard history\" in System Settings. MCP correctly states history tracks VS Code-originated writes only - not native OS clipboard changes from other apps.",
     },
     {
       dimension: "Implementation Mechanism",
@@ -69,7 +69,7 @@ export const clipboardHistoryApiPrompt: ScenarioPrompt = {
       baseline: "readHistory?() + fallback",
       mcp: "Ring buffer + onDidWriteText ✓",
       notes:
-        "MCP designed a concrete 50-entry ring buffer in MainThreadClipboard fed by onDidWriteText. Baseline hinges on IClipboardService.readHistory?() it hopes the platform provides, with a single-item fallback when it doesn't — a tell it's guessing at an API it never confirmed exists.",
+        "MCP designed a concrete 50-entry ring buffer in MainThreadClipboard fed by onDidWriteText. Baseline hinges on IClipboardService.readHistory?() it hopes the platform provides, with a single-item fallback when it doesn't - a tell it's guessing at an API it never confirmed exists.",
     },
     {
       dimension: "Research Approach",

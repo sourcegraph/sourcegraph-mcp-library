@@ -61,7 +61,7 @@ export const adsMultiRepoBusinessLogicPrompt: ScenarioPrompt = {
       baseline: "Capability tiers (max_rows)",
       mcp: "flask-limiter + Redis ✓",
       notes:
-        "Baseline conflated query-capability permissions (Basic/Devel/Collab max_rows) with rate limiting — a different layer in the legacy app. MCP found LimiterService in api_gateway with per-endpoint daily limits, multipliers, scaling cost, and X-RateLimit-* headers.",
+        "Baseline conflated query-capability permissions (Basic/Devel/Collab max_rows) with rate limiting - a different layer in the legacy app. MCP found LimiterService in api_gateway with per-endpoint daily limits, multipliers, scaling cost, and X-RateLimit-* headers.",
     },
     {
       dimension: "Saved Searches & Libraries",
