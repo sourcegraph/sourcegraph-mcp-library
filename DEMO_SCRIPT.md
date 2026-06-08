@@ -179,7 +179,7 @@ This scenario has three sub-demos. Lead with **Architecture comprehension** (Fli
 - Pulls real indexed files from `github.com/microsoft/vscode`: `mainThreadClipboard.ts`, `NativeClipboardService`, `BrowserClipboardService`
 - Designs a ring buffer fed by `onDidWriteText` — grounded in actual write path
 - Correctly scopes: VS Code–mediated writes only, not native OS clipboard changes from other apps
-- Quality **0.94**, ~34% lower cost ($1.82 → $1.21); time only modestly faster (9m 23s → 8m 1s) — the win here is quality + cost + tool efficiency
+- Quality **0.94**, similar cost ($1.82 → $1.81); time modestly faster (9m 23s → 8m 1s) — the win here is quality + tool efficiency, not cost savings
 
 > **Methodology note:** The MCP run's prompt includes "Use Sourcegraph Deep Search." Mention this if asked about apples-to-apples fairness.
 

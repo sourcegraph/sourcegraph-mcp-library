@@ -5,7 +5,7 @@ import { withoutMCP, withMCP } from "./timeline";
 
 const metrics: PromptMetrics = {
   withoutMCP: { timeSeconds: 9 * 60 + 23, costUsd: 1.82, quality: 0.38, toolCalls: 144 },
-  withMCP: { timeSeconds: 8 * 60 + 1, costUsd: 1.21, quality: 0.94, toolCalls: 50 },
+  withMCP: { timeSeconds: 8 * 60 + 1, costUsd: 1.81, quality: 0.94, toolCalls: 50 },
 };
 
 export const clipboardHistoryApiPrompt: ScenarioPrompt = {
