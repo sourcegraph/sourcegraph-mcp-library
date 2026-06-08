@@ -1,6 +1,6 @@
 import type { Scenario } from "../../types/scenario";
-import { crossRepoDiscoveryPrompt } from "./cross-repo-discovery";
-import { businessLogicPrompt } from "./business-logic";
+import { adsMultiRepoBusinessLogicPrompt } from "./ads-multi-repo-business-logic";
+import { placeholderPrompt } from "./placeholder";
 import { flinkCheckpointArchPrompt } from "./flink-checkpoint-arch-001";
 
 export const understandExistingCode: Scenario = {
@@ -10,8 +10,8 @@ export const understandExistingCode: Scenario = {
   repo: "microsoft/vscode",
   repoUrl: "https://github.com/microsoft/vscode",
   prompts: [
-    crossRepoDiscoveryPrompt,
-    businessLogicPrompt,
+    adsMultiRepoBusinessLogicPrompt,
+    placeholderPrompt,
     flinkCheckpointArchPrompt,
   ],
 };

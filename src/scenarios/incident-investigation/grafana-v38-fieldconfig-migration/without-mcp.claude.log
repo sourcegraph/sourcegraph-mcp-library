@@ -1,0 +1,163 @@
+⏺ I'll help you find the Grafana v38 dashboard migration code and the fieldConfig merging issue. Let me search for the relevant files.
+
+⏺ Bash(find /Users/asridhar/work/Sourcegraph/code/cmp/grafana -type f -name "*.go" | xargs grep -l "v38\|V38" | head -20)
+  ⎿  /Users/asridhar/work/Sourcegraph/code/cmp/grafana/apps/dashboard/pkg/migration/schemaversion/migrations.go
+     /Users/asridhar/work/Sourcegraph/code/cmp/grafana/apps/dashboard/pkg/migration/schemaversion/v38.go
+     /Users/asridhar/work/Sourcegraph/code/cmp/grafana/apps/dashboard/pkg/migration/schemaversion/v38_test.go
+
+⏺ Bash(find /Users/asridhar/work/Sourcegraph/code/cmp/grafana -type f -name "*.go" | xargs grep -l "fieldConfig.*defaults.*custom\|FieldConfig.*Defaults.*Custom" | hea…)
+  ⎿  /Users/asridhar/work/Sourcegraph/code/cmp/grafana/pkg/registry/apis/dashboard/snapshot/routes.go
+     /Users/asridhar/work/Sourcegraph/code/cmp/grafana/apps/dashboard/pkg/apis/dashboard_manifest.go
+     /Users/asridhar/work/Sourcegraph/code/cmp/grafana/apps/dashboard/pkg/migration/frontend_defaults.go
+     /Users/asridhar/work/Sourcegraph/code/cmp/grafana/apps/dashboard/pkg/migration/migrate.go
+
+  Read 6 files, listed 1 directory (ctrl+o to expand)
+
+⏺ Here are the key Go source files implementing Grafana's v38 dashboard migration:
+
+  Schema Version Constant File
+
+  /Users/asridhar/work/Sourcegraph/code/cmp/grafana/apps/dashboard/pkg/migration/schemaversion/migrations.go (lines 10-12)
+  const (
+      MIN_VERSION    = 0
+      LATEST_VERSION = 42
+  )
+
+  V38 Migration Implementation
+  
+  /Users/asridhar/work/Sourcegraph/code/cmp/grafana/apps/dashboard/pkg/migration/schemaversion/v38.go — Implements the v38 schema migration
+  - Main entry point: V38() function (line 75)
+  - Processes table panels: processPanelsV38() (line 90) — Recursively processes nested panels in rows
+  - Handles fieldConfig defaults: Lines 116-127 migrate displayMode to cellOptions in defaults.custom
+  - Processes overrides: migrateOverrides() (line 136) — Updates field override references
+  - Mode conversion: migrateTableDisplayModeToCellOptions() (line 179) — Converts display modes
+  
+  FieldConfig Merging & Cleanup Logic
+
+  /Users/asridhar/work/Sourcegraph/code/cmp/grafana/apps/dashboard/pkg/migration/frontend_defaults.go — Handles fieldConfig preservation and cleanup
+  - Field config cleanup: cleanupFieldConfigDefaults() (line 1033) — Lines 1037-1069 handle empty custom objects
+  - Custom object tracking: trackOriginalFieldConfigCustom() (line 1103) — Preserves originally-present custom objects
+  - Custom preservation: Lines 667-671 ensure custom object isn't dropped if it was originally present
+
+  Migration Orchestration
+
+  /Users/asridhar/work/Sourcegraph/code/cmp/grafana/apps/dashboard/pkg/migration/migrate.go — Coordinates the migration pipeline
+  - Tracking phase: Line 129 — trackOriginalFieldConfigCustom() marks panels that had fieldConfig.defaults.custom before migrations
+  - Migration execution: Lines 177-185 — Runs v38 and other migrations
+  - Cleanup phase: Line 193 — cleanupDashboardForSave() applies final cleanup
+
+  The Bug
+
+  The issue appears to be in v38.go, processPanelsV38() (lines 116-127): The code only processes defaults.custom if a displayMode property exists. If a table panel's custom object has other properties but no
+  displayMode, or if custom exists but is empty, the migration may not preserve it properly. Additionally, the cleanup phase in cleanupFieldConfigDefaults() may remove empty custom objects for table panels
+  when they should be preserved.
+     -rw-r--r--   1 asridhar  staff   3473  6 Jun 10:24 v23.go
+     -rw-r--r--   1 asridhar  staff   2374  6 Jun 10:24 v24_test.go
+     -rw-r--r--   1 asridhar  staff   2144  6 Jun 10:24 v24.go
+     -rw-r--r--   1 asridhar  staff    883  6 Jun 10:24 v25_test.go
+     -rw-r--r--   1 asridhar  staff   1149  6 Jun 10:24 v25.go
+     -rw-r--r--   1 asridhar  staff   2937  6 Jun 10:24 v26_test.go
+     -rw-r--r--   1 asridhar  staff   2253  6 Jun 10:24 v26.go
+     -rw-r--r--   1 asridhar  staff   4017  6 Jun 10:24 v27_test.go
+     -rw-r--r--   1 asridhar  staff   4140  6 Jun 10:24 v27.go
+     -rw-r--r--   1 asridhar  staff   4941  6 Jun 10:24 v28_test.go
+     -rw-r--r--   1 asridhar  staff   1910  6 Jun 10:24 v28.go
+     -rw-r--r--   1 asridhar  staff   9565  6 Jun 10:24 v29_test.go
+     -rw-r--r--   1 asridhar  staff   1589  6 Jun 10:24 v29.go
+     -rw-r--r--   1 asridhar  staff    866  6 Jun 10:24 v3_test.go
+     -rw-r--r--   1 asridhar  staff    183  6 Jun 10:24 v3.go
+     -rw-r--r--   1 asridhar  staff  15436  6 Jun 10:24 v30_test.go
+     -rw-r--r--   1 asridhar  staff  12682  6 Jun 10:24 v30.go
+     -rw-r--r--   1 asridhar  staff   2341  6 Jun 10:24 v31_test.go
+     -rw-r--r--   1 asridhar  staff   4425  6 Jun 10:24 v31.go
+     -rw-r--r--   1 asridhar  staff    882  6 Jun 10:24 v32_test.go
+     -rw-r--r--   1 asridhar  staff    651  6 Jun 10:24 v32.go
+     -rw-r--r--   1 asridhar  staff   6130  6 Jun 10:24 v33_test.go
+     -rw-r--r--   1 asridhar  staff   4144  6 Jun 10:24 v33.go
+     -rw-r--r--   1 asridhar  staff  31731  6 Jun 10:24 v34_test.go
+     -rw-r--r--   1 asridhar  staff  11558  6 Jun 10:24 v34.go
+     -rw-r--r--   1 asridhar  staff   8264  6 Jun 10:24 v35_test.go
+     -rw-r--r--   1 asridhar  staff   2623  6 Jun 10:24 v35.go
+     -rw-r--r--   1 asridhar  staff    184  6 Jun 10:24 v36_test.go
+     -rw-r--r--   1 asridhar  staff   9509  6 Jun 10:24 v36.go
+     -rw-r--r--   1 asridhar  staff   8588  6 Jun 10:24 v37_test.go
+     -rw-r--r--   1 asridhar  staff   3033  6 Jun 10:24 v37.go
+     -rw-r--r--   1 asridhar  staff  17079  6 Jun 10:24 v38_test.go
+     -rw-r--r--   1 asridhar  staff   6039  6 Jun 10:24 v38.go
+     -rw-r--r--   1 asridhar  staff   9540  6 Jun 10:24 v39_test.go
+     -rw-r--r--   1 asridhar  staff   3527  6 Jun 10:24 v39.go
+     -rw-r--r--   1 asridhar  staff    866  6 Jun 10:24 v4_test.go
+     -rw-r--r--   1 asridhar  staff    183  6 Jun 10:24 v4.go
+     -rw-r--r--   1 asridhar  staff   2150  6 Jun 10:24 v40_test.go
+     -rw-r--r--   1 asridhar  staff   1784  6 Jun 10:24 v40.go
+     -rw-r--r--   1 asridhar  staff   1397  6 Jun 10:24 v41_test.go
+     -rw-r--r--   1 asridhar  staff   1649  6 Jun 10:24 v41.go
+     -rw-r--r--   1 asridhar  staff  10172  6 Jun 10:24 v42_test.go
+     -rw-r--r--   1 asridhar  staff   2830  6 Jun 10:24 v42.go
+     -rw-r--r--   1 asridhar  staff    866  6 Jun 10:24 v5_test.go
+     -rw-r--r--   1 asridhar  staff    188  6 Jun 10:24 v5.go
+     -rw-r--r--   1 asridhar  staff  12604  6 Jun 10:24 v6_test.go
+     -rw-r--r--   1 asridhar  staff   3344  6 Jun 10:24 v6.go
+     -rw-r--r--   1 asridhar  staff   5284  6 Jun 10:24 v7_test.go
+     -rw-r--r--   1 asridhar  staff   2077  6 Jun 10:24 v7.go
+     -rw-r--r--   1 asridhar  staff   6182  6 Jun 10:24 v8_test.go
+     -rw-r--r--   1 asridhar  staff   5610  6 Jun 10:24 v8.go
+     -rw-r--r--   1 asridhar  staff    867  6 Jun 10:24 v9_test.go
+     -rw-r--r--   1 asridhar  staff   1099  6 Jun 10:24 v9.go
+  
+⏺ Read(/Users/asridhar/work/Sourcegraph/code/cmp/grafana/apps/dashboard/pkg/migration/schemaversion/v38.go)
+  ⎿  Read 210 lines
+  
+⏺ Read(/Users/asridhar/work/Sourcegraph/code/cmp/grafana/apps/dashboard/pkg/migration/schemaversion/migrations.go)
+  ⎿  Read 115 lines
+  
+⏺ Read(/Users/asridhar/work/Sourcegraph/code/cmp/grafana/apps/dashboard/pkg/migration/frontend_defaults.go)
+  ⎿  Read 1133 lines
+
+⏺ Read(/Users/asridhar/work/Sourcegraph/code/cmp/grafana/apps/dashboard/pkg/migration/migrate.go)
+  ⎿  Read 246 lines
+
+⏺ Read(/Users/asridhar/work/Sourcegraph/code/cmp/grafana/apps/dashboard/pkg/migration/schemaversion/v38_test.go · lines 1-100)
+  ⎿  Read 100 lines
+
+                                                                                                                                                                       12:40 PM claude-haiku-4-5-20251001
+⏺ Here are the key Go source files implementing Grafana's v38 dashboard migration:
+
+  Schema Version Constant File
+
+  /Users/asridhar/work/Sourcegraph/code/cmp/grafana/apps/dashboard/pkg/migration/schemaversion/migrations.go (lines 10-12)
+  const (
+      MIN_VERSION    = 0
+      LATEST_VERSION = 42
+  )
+
+  V38 Migration Implementation
+
+  /Users/asridhar/work/Sourcegraph/code/cmp/grafana/apps/dashboard/pkg/migration/schemaversion/v38.go — Implements the v38 schema migration
+  - Main entry point: V38() function (line 75)
+  - Processes table panels: processPanelsV38() (line 90) — Recursively processes nested panels in rows
+  - Handles fieldConfig defaults: Lines 116-127 migrate displayMode to cellOptions in defaults.custom
+  - Processes overrides: migrateOverrides() (line 136) — Updates field override references
+  - Mode conversion: migrateTableDisplayModeToCellOptions() (line 179) — Converts display modes
+
+  FieldConfig Merging & Cleanup Logic
+
+  /Users/asridhar/work/Sourcegraph/code/cmp/grafana/apps/dashboard/pkg/migration/frontend_defaults.go — Handles fieldConfig preservation and cleanup
+  - Field config cleanup: cleanupFieldConfigDefaults() (line 1033) — Lines 1037-1069 handle empty custom objects
+  - Custom object tracking: trackOriginalFieldConfigCustom() (line 1103) — Preserves originally-present custom objects
+  - Custom preservation: Lines 667-671 ensure custom object isn't dropped if it was originally present
+
+  Migration Orchestration
+
+  /Users/asridhar/work/Sourcegraph/code/cmp/grafana/apps/dashboard/pkg/migration/migrate.go — Coordinates the migration pipeline
+  - Tracking phase: Line 129 — trackOriginalFieldConfigCustom() marks panels that had fieldConfig.defaults.custom before migrations
+  - Migration execution: Lines 177-185 — Runs v38 and other migrations
+  - Cleanup phase: Line 193 — cleanupDashboardForSave() applies final cleanup
+
+  The Bug
+
+  The issue appears to be in v38.go, processPanelsV38() (lines 116-127): The code only processes defaults.custom if a displayMode property exists. If a table panel's custom object has other properties but no
+  displayMode, or if custom exists but is empty, the migration may not preserve it properly. Additionally, the cleanup phase in cleanupFieldConfigDefaults() may remove empty custom objects for table panels
+  when they should be preserved.
+
+

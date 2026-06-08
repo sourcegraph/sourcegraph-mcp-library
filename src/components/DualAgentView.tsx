@@ -8,6 +8,7 @@ import {
 } from "../types/scenario";
 import { AgentColumn } from "./AgentColumn";
 import { DemoTabs } from "./DemoTabs";
+import { PromptText } from "./PromptText";
 import { QualityBreakdown } from "./QualityBreakdown";
 import "./DualAgentView.css";
 
@@ -127,7 +128,7 @@ export function DualAgentView({
       <div className="dual-agent__toolbar">
         <div className="dual-agent__prompt">
           {scenario && activePrompt ? (
-            <p className="dual-agent__prompt-text">{activePrompt.text}</p>
+            <PromptText text={activePrompt.text} className="dual-agent__prompt-text" />
           ) : (
             <p className="dual-agent__prompt-placeholder">
               Select a use case to start the demo

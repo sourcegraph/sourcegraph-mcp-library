@@ -6,11 +6,13 @@
 const PRIORITY_KEYS = [
   "command",
   "query",
+  "question",
   "path",
   "file_path",
   "symbol",
   "message",
   "rev",
+  "identifier",
 ];
 
 /** Extract a string value for `key` from an args object-literal string. */
@@ -125,7 +127,14 @@ export function compactToolArg(name: string, args: string): string {
     case "nls_search":
     case "sg_nls_search":
     case "deep_search":
+    case "mcp__sourcegraph__deepsearch":
+    case "deepsearch":
       return compactSearch(args);
+    case "mcp__sourcegraph__deepsearch_read":
+    case "deepsearch_read":
+      return basename(
+        extractKey(args, "identifier") ?? rawValue(args),
+      );
     case "Read":
     case "Write":
     case "read_file":

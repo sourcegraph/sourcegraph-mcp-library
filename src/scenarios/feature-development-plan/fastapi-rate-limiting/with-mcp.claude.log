@@ -1,0 +1,98 @@
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Ready to code?
+
+ Here is Claude's plan:
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Plan: Built-in RateLimiter Dependency
+  
+ Context
+
+ FastAPI has no built-in rate limiting primitive. Users currently reach for third-party packages
+ (slowapi, fastapi-limiter) or write ad-hoc middleware. This plan adds a first-class
+ RateLimiter dependency class to the framework itself — composable at route, router, or app
+ level, with zero extra dependencies.
+
+ The design exploits two FastAPI internals confirmed by deepsearch + source reading:
+ 1. Dependency injection — any callable annotated with request: Request has the full
+ Starlette request object injected automatically by solve_dependencies() at request time
+ (fastapi/dependencies/utils.py:715-716).
+ 2. Event-loop safety — solve_dependencies is async but the check-and-update path in the
+ limiter has no await, so the dict/deque operations are atomic from the event loop's
+ perspective. No asyncio.Lock needed.
+
+ User choices: in-memory, sliding window, IP + route path key (with optional
+ custom key_func for user/API-key scope), HTTP 429 + Retry-After header.
+
+ ---
+ Files
+
+ ┌────────┬─────────────────────────────┐
+ │ Action │            Path             │
+ ├────────┼─────────────────────────────┤
+ │ CREATE │ fastapi/rate_limiting.py    │
+ ├────────┼─────────────────────────────┤
+ │ MODIFY │ fastapi/__init__.py         │
+ ├────────┼─────────────────────────────┤
+ │ CREATE │ tests/test_rate_limiting.py │
+ └────────┴─────────────────────────────┘
+
+ ---
+ Implementation
+
+ fastapi/rate_limiting.py (new file)
+
+ Sliding-window rate limiter usable as a FastAPI dependency. Per-instance _store dict;
+ share one instance across routes for a shared budget. _default_key respects
+ X-Forwarded-For for apps behind a reverse proxy and scopes by route path.
+
+ Usage:
+     limiter = RateLimiter(limit=10, window=60)
+     @app.get("/items", dependencies=[Depends(limiter)])
+     async def list_items(): ...
+
+ ---
+ Why dependency, not middleware?
+
+ ┌──────────────────────┬──────────────────────────────────────────────────────┬───────────────────────────────────┐
+ │                      │               Dependency (RateLimiter)               │  Middleware (BaseHTTPMiddleware)  │
+ ├──────────────────────┼──────────────────────────────────────────────────────┼───────────────────────────────────┤
+ │ Granularity          │ Per-route, per-router, or global                     │ Global only                       │
+ ├──────────────────────┼──────────────────────────────────────────────────────┼───────────────────────────────────┤
+ │ Exception handling   │ Uses FastAPI's ExceptionMiddleware → proper JSON 429 │ Must build JSON response manually │
+ ├──────────────────────┼──────────────────────────────────────────────────────┼───────────────────────────────────┤
+ │ Access to DI context │ Yes (can compose with auth deps)                     │ No                                │
+ ├──────────────────────┼──────────────────────────────────────────────────────┼───────────────────────────────────┤
+ │ Composability        │ Depends() at any level                               │ Registered once on app            │
+ └──────────────────────┴──────────────────────────────────────────────────────┴───────────────────────────────────┘
+
+ ---
+ Tests (tests/test_rate_limiting.py)
+
+ ┌─────────────────────────────┬──────────────────────────────────────────────────────────┐
+ │            Test             │                      What it covers                      │
+ ├─────────────────────────────┼──────────────────────────────────────────────────────────┤
+ │ test_under_limit            │ N requests all return 200                                │
+ ├─────────────────────────────┼──────────────────────────────────────────────────────────┤
+ │ test_limit_exceeded         │ N+1 requests; last returns 429                           │
+ ├─────────────────────────────┼──────────────────────────────────────────────────────────┤
+ │ test_retry_after_header     │ 429 response includes Retry-After header                 │
+ ├─────────────────────────────┼──────────────────────────────────────────────────────────┤
+ │ test_window_resets          │ After window elapses, counter resets (mock time.time)    │
+ ├─────────────────────────────┼──────────────────────────────────────────────────────────┤
+ │ test_different_ips_isolated │ Two IPs have independent buckets                         │
+ ├─────────────────────────────┼──────────────────────────────────────────────────────────┤
+ │ test_custom_key_func        │ Custom key_func routes limits by API key header          │
+ ├─────────────────────────────┼──────────────────────────────────────────────────────────┤
+ │ test_global_dependency      │ Limiter on FastAPI(dependencies=[...]) covers all routes │
+ ├─────────────────────────────┼──────────────────────────────────────────────────────────┤
+ │ test_router_dependency      │ Limiter on APIRouter applies to all routes in router     │
+ └─────────────────────────────┴──────────────────────────────────────────────────────────┘
+
+ ---
+ Verification
+
+ 1. python -m pytest tests/test_rate_limiting.py -v — all test cases pass
+ 2. Manually: spin up a test app, hit an endpoint 11 times in a loop, confirm 429 on the 11th
+ with Retry-After header present
+ 3. from fastapi import RateLimiter — import works from public API
+ ╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
