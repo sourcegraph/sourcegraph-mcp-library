@@ -2,6 +2,18 @@
 
 A scripted demo UI for solutions engineers showing how agent outcomes differ **with** vs **without** Sourcegraph MCP as a context source.
 
+## Access
+
+The demo is protected by a password gate. When you open the app, enter the demo password to continue:
+
+```
+Sourcegr@ph-D3m0
+```
+
+After a successful login, the app stores an auth flag in **`sessionStorage`** (not a cookie). You will not be prompted again while using the same browser tab — including on refresh — but you will need to re-enter the password if you close the tab, open a new tab, or use a private/incognito window.
+
+To override the password at build time, copy `.env.example` to `.env` and set `VITE_DEMO_PASSWORD`.
+
 ## Quick start
 
 ```bash
