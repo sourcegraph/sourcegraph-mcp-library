@@ -2,6 +2,7 @@ import type { Scenario } from "../../types/scenario";
 import { adsMultiRepoBusinessLogicPrompt } from "./ads-multi-repo-business-logic";
 import { placeholderPrompt } from "./placeholder";
 import { flinkCheckpointArchPrompt } from "./flink-checkpoint-arch-001";
+import { grpcTimeoutCrossRepoPrompt } from "./grpc-timeout-cross-repo";
 
 export const understandExistingCode: Scenario = {
   id: "understand-existing-code",
@@ -10,8 +11,9 @@ export const understandExistingCode: Scenario = {
   repo: "microsoft/vscode",
   repoUrl: "https://github.com/microsoft/vscode",
   prompts: [
-    adsMultiRepoBusinessLogicPrompt,
-    placeholderPrompt,
+    grpcTimeoutCrossRepoPrompt,
+    crossRepoDiscoveryPrompt,
+    businessLogicPrompt,
     flinkCheckpointArchPrompt,
   ],
 };
