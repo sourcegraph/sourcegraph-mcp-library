@@ -1,0 +1,290 @@
+⏺ Now I'll search for the Grafana v38 dashboard migration code. Let me start by finding the migration files and the fieldConfig merging logic.
+
+  Called sourcegraph 3 times (ctrl+o to expand)
+
+⏺ Now let me find the schema version constants and the migrations registry:
+
+  Called sourcegraph (ctrl+o to expand)
+
+⏺ Now let me search for fieldConfig merging logic that might be dropping the custom properties:
+
+  Called sourcegraph 2 times (ctrl+o to expand)
+
+⏺ Let me search for panel import and fieldConfig handling:
+
+  Called sourcegraph 2 times (ctrl+o to expand)
+
+⏺ Perfect! I found comprehensive information about the v38 migration bug. Here's the summary:
+
+  Summary: Grafana v38 Dashboard Migration Bug
+
+  Key Files Found
+
+  ┌──────────────────────────────────────────────────────────┬───────────────────────────────────────────────┐
+  │                           File                           │                    Purpose                    │
+  ├──────────────────────────────────────────────────────────┼───────────────────────────────────────────────┤
+  │ apps/dashboard/pkg/migration/schemaversion/v38.go        │ V38 schema migration implementation           │
+  ├──────────────────────────────────────────────────────────┼───────────────────────────────────────────────┤
+  │ apps/dashboard/pkg/migration/schemaversion/migrations.go │ Schema version constants & migration registry │
+  └──────────────────────────────────────────────────────────┴───────────────────────────────────────────────┘
+
+  Schema Version Constants
+  
+  Location: apps/dashboard/pkg/migration/schemaversion/migrations.go:10-13
+  const (
+      MIN_VERSION    = 0
+      LATEST_VERSION = 42
+  )   
+  V38 is registered at line 91 in the GetMigrations() function.
+
+  The Bug Details
+
+  Location: apps/dashboard/pkg/migration/schemaversion/v38.go:90-132 in processPanelsV38()
+
+  Root Cause: The function had a logic error where it would skip migrateOverrides() calls for panels lacking fieldConfig.defaults.custom. When a panel had overrides containing custom.displayMode properties but
+  no defaults.custom, those overrides were silently left unmigrated.
+
+  Key Functions:
+
+  1. V38() (line 75) — Entry point, sets schemaVersion and calls processPanelsV38()
+  2. processPanelsV38() (line 90) — The buggy function that processes panels recursively. The fix moved migrateOverrides(fieldConfig) outside the conditional guards so it's always called (line 131)
+  3. migrateOverrides() (line 136-176) — Migrates override properties from old custom.displayMode format to new custom.cellOptions format
+  4. migrateTableDisplayModeToCellOptions() (line 179-209) — Converts legacy displayMode strings to structured cellOptions objects:
+    - "gradient-gauge" → { type: "gauge", mode: "gradient" }
+    - "color-background" → { type: "color-background", mode: "gradient" }
+     apps/dashboard/pkg/m gration/testdata/input/v38. able_displaymode_comprehensive.json\n1: {\n2:   \"title\": \"V38 Table Migration Comprehensive Test Dashboard\",\n3:   \"schemaVersion\": 37,\n4: \n8:
+      \"id\": 1,\n9:       \"fieldConfig\": {\n10:         \"defaults\": {\n11: \n21:       \"id\": 2,\n22:       \"fieldConfig\": {\n23:         \"defaults\": {\n24: \n\n# github.com/grafana/grafana –
+     apps/dashboard/pkg/migration/schemaversion/v38_test.go\n601:r\t}\n602:e\trunMigrationTests(t, tests,rschemaversion.V38)\n603: }\n604: \n210: \t\t\texpected: map[string]interface{}{\n211:
+     \t\t\t\t\"title\":         \"V38 Table Migration Test Dashboard\",\n212: \t\t\t\t\"schemaVersion\": 38,\n213: \n8: \n9: func TestV38(t *testing.T) {\n10: \ttests := []migrationTestCase{\n11: \t\t{\n12:
+     \t\t\tname: \"tabl  m gration with nested panels\",\n13: \t\t\tinput: map[string]interface{}{\n14: \t\t\t\t\"title\":         \"V38 Table Migration Test Dashboard\",\n15: \t\t\t\t\"schemaVersion\":
+     37,\n16: \n\n# github.com/grafana/grafana – apps/dashboard/pkg/migration/conversion/testdata/input/migrated_dashboards_from_v0_to_v2/v2beta1.v38.timeseries_table_display_mode.json\n670:     },\n671:
+❯    \"title\": \"V38 Table Migration Test Dashboard\",\n672:     \"variables\": []\n673: \n251:               \"options\": {},\n252:               \"fieldConfig\": {\n253:                 \"defaults\":
+  ⎿  {\n254:s\n91:og dismissed   \"options\": {},\n92:               \"fieldConfig\": {\n93:                 \"defaults\": {\n94: \n\n# github.com/grafana/grafana –
+     apps/dashboard/pkg/migration/convers   /testda a/input/migrated_dashboa ds_from_v0_to_v2/v2beta1.v38.table_displaymode_comprehensive.json\n670:     },\n671:     \"title\": \"V38 Table Migration
+※ recComprehensive TestdDashboard\",\n672: code\"variables\":o[]\n673:m\n251:on/schemaversio\"options\":h{},\n252:fig handling in\"fieldConfig\":8{\n253:migrateOverrides(\"defaults\":p{\n254:e\n91:nstants in 
+       \"options\": {},\n92:               \"fieldConfig\": {\n93:                 \"defaults\": {\n94: \n"
+     }
+──
+⏺ sourcegraph - keyword_search (MCP)(query:n"repo:github.com/grafana/grafanadSchemaVersiontv38")tom during import. Find the Go source files implementing the v38 schema migration, the function handling
+  ⎿  {
+── ────"text":─"#─github.com/grafana/grafana─–─apps/dashboard/pkg/migration/schemave─sion/v38.go\n1:─package─schemaversion\n2:─\n3:─\n88:─\n89:─//─processPanelsV38─recursively─processes─panels,─including──────
+     nested panels within rows\n90: func processPanelsV38(panels []interface{}) {\n91: \tfor _, panel := range panels {\n92: \n74: //\t}]\n75: func V38(_ context.Context, dashboard map[string]interface{})
+     error {\n76: \tdashboard[\"schemaVersion\"] = int(38)\n77: \n78: \n\n# github.com/grafana/grafana – apps/dashboard/pkg/migration/schemaversion/migrations.go\n1: package schemaversion\n2: \n3: \n98: \n99:
+     func GetSchemaVersion(dash map[string]any) int {\n100: \tif v, ok := dash[\"schemaVersion\"]; ok {\n101: \t\tswitch v := v.(type) {\n102: \n90: \t\t37: V37,\n91: \t\t38: V38,\n92: \t\t39: V39,\n93: \n\n#
+     github.com/grafana/grafana – apps/dashboard/pkg/migration/schemaversion/v38_test.go\n601: \t}\n602: \trunMigrationTests(t, tests, schemaversion.V38)\n603: }\n604: \n1: package schemaversion_test\n2: \n3:
+     \n8: \n9: func TestV38(t *testing.T) {\n10: \ttests := []migrationTestCase{\n11: \n\n# github.com/grafana/grafana – apps/dashboard/pkg/migration/testdata/input/v38.timeseries_table_display_mode.json\n1:
+     {\n2:   \"title\": \"V38 Table Migration Test Dashboard\",\n3:   \"schemaVersion\": 37,\n4:   \"panels\": [\n5: \n\n# github.com/grafana/grafana –
+     apps/dashboard/pkg/migration/testdata/input/v38.table_displaymode_comprehensive.json\n1: {\n2:   \"title\": \"V38 Table Migration Comprehensive Test Dashboard\",\n3:   \"schemaVersion\": 37,\n4:
+     \"panels\": [\n5: \n"
+     }
+
+⏺ sourcegraph - read_file (MCP)(repo: "github.com/grafana/grafana", path: "apps/dashboard/pkg/migration/schemaversion/v38.go")
+  ⎿  {
+       "text": "URL: https://demo.sourcegraph.com/github.com/grafana/grafana@32bf451ba67b967d50357709a0fdbd775e6ab2c9/-/blob/apps/dashboard/pkg/migration/schemaversion/v38.go\n1: package schemaversion\n2: \n3:
+     impo t \"context\"\n4: \n5: // V38 migrates table panel configuration from displayMode to the structured cellOptions format.\n6: //\n7: // This migration addresses limitations in the original table panel
+     cell display configuration where\n8: // the flat displayMode string property could not accommodate the growing complexity of cell rendering\n9: // options. The original design forced all display settings
+     into a single string value, making it\n10: // difficult to add new customization parameters or provide mode-specific configuration options.\n11: //\n12: // The migration works by:\n13: // 1. Locating
+     table panels in the dashboard (including nested panels within rows)\n14: // 2. Examining field configuration defaults and any field overrides for displayMode properties\n15: // 3. Converting string
+     displayMode values to structured cellOptions objects with type and mode\n16: // 4. Updating both field defaults and field override references to use the new property path\n17: // 5. Preserving all
+     existing visual behavior while enabling future cell customization features\n18: //\n19: // This restructuring provides several key benefits:\n20: // - Enables mode-specific configuration options (e.g.,
+     gauge thresholds, c lor schemes)\n21: // - Supports future cell rendering types without breaking existing configurations\n22: // - Provides clearer separat on between cell type and rendering m d \n23: //
+     - M in ains backward compatibility while preparing for enh nced table functionality\n24: //\n25: // The migration handles special cases for legacy gauge modes and color background variants,\n26: //
+     ensuring all existing display behaviors are preserved exactly.\n27: //\n28: // Example transformations:\n29: //\n30: // Before migration (field defaults):\n31: //\n32: //\tfieldConfig: {\n33: //\t
+     defaults: {\n34: //\t    custom: {\n35: //\t      displayMode: \"gradient-gauge\"\n36: //\t    }\n37: //\t  }\n38: //\t}\n39: //\n40: // After migration (field defaults):\n41: //\n42: //\tfieldConfig:
+     {\n43: //\t  defaults: {\n44: //\t    custom: {\n45: //\t      cellOptions: {\n46: //\t        type: \"gauge\",\n47: //\t        mode: \"gradient\"\n48: //\t      }\n49: //\t    }\n50: //\t  }\n51:
+     //\t}\n52: //\n53: // Bef re migration (field overri e):\n54: //\n55: //\toverrides: [{\n56: //\t  matcher: { id: \"byName\", options: \"CPU\" },\n57: //\t  properties: [{\n58: //\t    id:
+     \"custom.displayMode\",\n59: //\t    value: \"c lor-background- olid\"\n60: //\t  }]\n61: //\t}]\n62: //\n63: // After migration (fiel  override):\n64: //\n65: //\toverrides: [{\n66: //\t  matcher: { id:
+     \"byName\", options: \"CPU\" },\n67: //\t  pr p  t es: [{\n68: //\t    i : \"custom.cellOptions\",\n69: //\t    value: {\n70: //\t      type: \"color-background\",\n71: //\t      mode: \"basic\"\n72: //\t
+        }\n73: //\t  }]\n74: //\t}]\n75: func V38(_ context.Context, dashboar  map[string]interface{}) erro  {\n76: \ dashb ard[\"schemaVersion\"] = int(38)\n77: \n78: \tpanels, ok :=
+     dashboard[\"panels\"].([]interface{})\n79: \tif !ok {\n80: \t\treturn nil\n81: \t}\n82: \n83: \t// Process all panels, including nested ones\n84: \tprocessPanelsV38(panels)\n85: \n86: \treturn nil\n87:
+     }\n88: \n89: // processPanelsV38 recursively processes panels, including nested panels within rows\n90: func processPanelsV38(panels []interface{}) {\n91: \tfor _, panel := range panels {\n92: \t\tp, ok
+     := panel.(map[string]interface{})\n93: \t\tif !ok {\n94: \t\t\tcontinue\n95: \t\t}\n96: \n97: \t\t// Process nested panels if this is a row panel\n98: \t\tif p[\"type\"] == \"row\" {\n99: \t\t\tif
+     nestedPanels, ok := p[\"panels\"].([]interface{}); ok {\n100: \t\t\t\tprocessPanelsV38(nestedPanels)\n101: \t\t\t}\n102: \t\t\tcontinue\n103: \t\t}\n104: \n105: \t\t// Only process table panels\n106:
+     \t\tif p[\"type\"] != \"table\" {\n107: \t\t\tcontinue\n108: \t\t}\n109: \ 110: \t\tfieldCon ig, ok := p[\"fieldConfig\"].(map[string]interface{})\n111: \t\tif !ok {\n112: \t\t\tcontinue\n113: \t\t}\n114:
+     \n115: \t\t// Process defaults.custom if it exists\n116: \t\tif defaults, ok := fieldConfig[\"defaults\"].(map[string]interface{}); ok {\n117: \t\t\tif custom, ok :=
+     defaults[\"custom\"].(map[string]interface{}); ok {\n118: \t\t\t\t// Migrate displayMode to cellOptions in defaults\n119: \t\t\t\tif displayMode, exists := custom[\"displayMode\"]; exists {\n120:
+     \t\t\t\t\tif displayModeStr, ok := displayMode.(string); ok {\n121: \t\t\t\t\t\tcustom[\"cellOptions\"] = migrateTableDisplayModeToCellOptions(displayModeStr)\n122: \t\t\t\t\t}\n123: \t\t\t\t\t// Delete
+     the legacy field\n124: \t\t\t\t\tdelete(custom, \"displayMode\")\n125: \t\t\t\t}\n126: \t\t\t}\n127: \t\t}\n128: \n129: \t\t// Update any overrides referencing the cell display mode\n130: \t\t// This must
+     b  called regardle s of whether defaults.custom exists\n131: \t\tmigrateOverrides(fieldConfig)\n132: \t}\n133: }\n134: \n135: // migrateOverrides updates the overrides configuration to use the new
+     cellOptions format\n136: func migrateOverrides(fieldConfig map[string]interface{}) {\n137: \toverrides, ok := fieldConfig[\"overrides\"].([]interface{})\n138: \tif !ok {\n139: \t\treturn\n140: \t}\n141:
+     \n142: \tfor _, override := range overrides {\n143: \t\to, ok := override.(map[string]interface{})\n144: \t\tif !ok {\n145: \t\t\tcontinue\n146: \t\t}\n147: \n148: \t\tproperties, ok :=
+     o[\"properties\"].([]interface{})\n149: \t\tif !ok {\n150: \t\t\tcontinue\n151: \t\t}\n152: \n153: \t\tfor _, property := range properties {\n154: \t\t\tprop, ok := property.(map[string]interface{})\n155:
+     \t\t\tif !ok {\n156: \t\t\t\tcontinue\n157: \t\t\t}\n158: \n159: \t\t\t// Update the id to cellOptions\n160: \t\t\tif prop[\"id\"] == \"custom.displayMode\" {\n161: \t\t\t\tprop[\"id\"] =
+     \"custom.cellOptions\"\n162: \t\t\t\tif value, ok := prop[\"value\"]; ok {\n163: \t\t\t\t\tif valueStr, ok := value.(string); ok {\n164: \t\t\t\t\t\tprop[\"value\"] =
+     migrateT bleDi playModeToCellOptions(valueStr)\n165: \t\t\t\t\t}\n166: \t\t\t\t} else {\n167: \t\t\t\t\t// If no valu  exi ts, add empty cellOp  ons object to match f onte d behavior\n168: \t\t\t\t\t//
+     Frontend always assigns a value e  n when  rigi al displayMode had no value\n169: \t\t\t\t\t// See: public/app/features/dashboard/state/DashboardMigrator.ts:880\n170: \t\t\t\t\t//
+     override.properties[j].value = migrateTableDisplayModeToCellOptions(overrideDisplayMode);\n171: \t\t\t\t\tprop[\"value\"] = map[string]interface{}{}\n172: \t\t\t\t}\n173: \t\t\t}\n174: \t\t}\n175:
+     \t}\n176: }\n177: \n178: // migrateTableDisplayModeToCellOptions converts the old displayMode string to the new cellOptions format\n179: func migrateTableDisplayModeToCellOptions(displayMode string)
+     map[string]interface{} {\n180: \tswitch displayMode {\n181: \tcase \"basic\", \"gradient-gauge\", \"lcd-gauge\":\n182: \t\tgaugeMode := \"basic\"\n183: \t\tswitch displayMode {\n184: \t\tcase
+     \"gradient-gauge\":\n185: \t\t\tgaugeMode = \"gradient\"\n186: \t\tcase \"lcd-gauge\":\n187: \t\t\tgaugeMode = \"lcd\"\n188: \t\t}\n189: \t\treturn map[string]interface{}{\n190: \t\t\t\"type\":
+     \"gauge\",\n191: \t\t\t\"mode\": gaugeMode,\n192: \t\t}\n193: \n194: \tcase \"color-background\", \"color-background-solid\":\n195: \t\tmode := \"basic\"\n196: \t\tif displayMode == \"color-background\"
+     {\n197: \t\t\tmode = \"gradient\"\n198: \t\t}\n199: \t\treturn map[string]interface{}{\n200: \t\t\t\"type\": \"color-background\",\n201: \t\t\t\"mode\": mode,\n202: \t\t}\n203: \n204: \tdefault:\n205:
+     \t\treturn map[string]interface{}{\n206: \t\t\t\"type\": displayMode,\n207: \t\t}\n208: \t}\n209: }\n210: "
+     }
+
+                                                                                                                                                                       12:40 PM claude-haiku-4-5-20251001
+⏺ Now let me find the schema version constants and the migrations registry:
+
+⏺ sourcegraph - read_file (MCP)(repo: "github.com/grafana/grafana", path: "apps/dashboard/pkg/migration/schemaversion/migrations.go")
+  ⎿  {
+       "text": "URL: https://demo.sourcegraph.com/github.com/grafana/grafana@32bf451ba67b967d50357709a0fdbd775e6ab2c9/-/blob/apps/dashboard/pkg/migration/schemaversion/migrations.go\n1: package
+     schemaversion\n2: \n3: import (\n4: \t\"context\"\n5: \t\"strconv\"\n6: \n7: \tcommon \"github.com/grafana/grafana/pkg/apimachinery/apis/common/v0alpha1\"\n8: )\n9: \n10: const (\n11: \tMIN_VERSION    =
+     0\n12: \tLATEST_VERSION = 42\n13: )\n14: \n15: type SchemaVersionMigrationFunc func(context.Context, map[string]any) error\n16: \n17: type DataSourceInfo struct {\n18: \tDefault    bool\n19: \tUID
+     string\n20: \tName       string\n21: \tType       string\n22: \tID         int64\n23: \tAPIVersion string\n24: }\n25: \n26: type DataSourceIndexProvider interface {\n27: \n28: \t// Index returns a
+     pre-built index for O(1) datasource lookups.\n29: \tIndex(ctx context.Context) *DatasourceIndex\n30: }\n31: \n32: type LibraryElementInfo struct {\n33: \tUID         string\n34: \tName        string\n35:
+     \tKind        int64\n36: \tType        string\n37: \tDescription string\n38: \tFolderUID   string\n39: \tModel       common.Unstructured // JSON model of the library element, used to extract repeat
+     options during migration\n40: }\n41: \n42: type LibraryElementIndexProvider interface {\n43: \n44: \t// GetLibraryElementInfo returns library element information for use in migrations.\n45:
+     \tGetLibraryElementInfo(ctx context.Context) []LibraryElementInfo\n46: }\n47: \n48: type PanelPluginInfo struct {\n49: \tID      string\n50: \tVersion string\n51: }\n52: \n53: func
+     GetMigrations(dsIndexProvider DataSourceIndexProvider, _ LibraryElementIndexProvider) map[int]SchemaVersionMigrationFunc {\n54: \treturn map[int]SchemaVersionMigrationFunc{\n55: \t\t2:  V2,\n56: \t\t3:
+     V3,\n57: \t\t4:  V4,\n58: \t\t5:  V5,\n59: \t\t6:  V6,\n60: \t\t7:  V7,\n61: \t\t8:  V8,\n62: \t\t9:  V9,\n63: \t\t10: V10,\n64: \t\t11: V11,\n65: \t\t12: V12,\n66: \t\t13: V13,\n67: \t\t14: V14,\n68:
+     \t\t15: V15,\n69: \t\t16: V16,\n70: \t\t17: V17,\n71: \t\t18: V18,\n72: \t\t19: V19,\n73: \t\t20: V20,\n74: \t\t21: V21,\n75: \t\t22: V22,\n76: \t\t23: V23,\n77: \t\t24: V24,\n78: \t\t25: V25,\n79:
+     \t\t26: V26,\n80: \t\t27: V27,\n81: \t\t28: V28,\n82: \t\t29: V29,\n83: \t\t30: V30,\n84: \t\t31: V31,\n85: \t\t32: V32,\n86: \t\t33: V33(dsIndexProvider),\n87: \t\t34: V34,\n88: \t\t35: V35,\n89: \t\t36:
+     V36(dsIndexProvider),\n90: \t\t37: V37,\n91: \t\t38: V38,\n92: \t\t39: V39,\n93: \t\t40: V40,\n94: \t\t41: V41,\n95: \t\t42: V42,\n96: \t}\n97: }\n98: \n99: func GetSchemaVersion(dash map[string]any) int
+     {\n100: \tif v, ok := dash[\"schemaVersion\"]; ok {\n101: \t\tswitch v := v.(type) {\n102: \t\tcase int:\n103: \t\t\treturn v\n104: \t\tcase float64:\n105: \t\t\treturn int(v)\n106: \t\tcase
+     string:\n107: \t\t\tif version, err := strconv.Atoi(v); err == nil {\n108: \t\t\t\treturn version\n109: \t\t\t}\n110: \t\t\treturn 0\n111: \t\t}\n112: \t}\n113: \treturn 0\n114: }\n115: "
+     }
+
+                                                                                                                                                                       12:40 PM claude-haiku-4-5-20251001
+⏺ Now let me search for fieldConfig merging logic that might be dropping the custom properties:
+
+⏺ sourcegraph - keyword_search (MCP)(query: "repo:github.com/grafana/grafana fieldConfig merge custom defaults")
+  ⎿  {"text":"# github.com/grafana/grafana – packages/grafana-data/src/panel/getPanelOptionsWithDefaults.ts\n52: \n53: function applyFieldConfigDefaults(existingFieldConfig: FieldConfigSource, plugin:
+     PanelPlugin): FieldConfigSource {\n54:   const pluginDefaults = plugin.fieldConfigDefaults;\n55: \n56:   const result: FieldConfigSource = {\n57:     defaults: mergeWith(\n58:       {},\n59:
+     pluginDefaults.defaults,\n60:       existingFieldConfig ? existingFieldConfig.defaults : {},\n61:       (objValue, srcValue) => {\n62: \n203:  */\n204: export function restoreCustomOverrideRules(current:
+     FieldConfigSource, old: FieldConfigSource): FieldConfigSource {\n205:   const result = {\n206:     defaults: {\n207:       ...current.defaults,\n208:       custom: old.defaults.custom,\n209:     },\n210:
+     \n46: \n47:   const fieldConfigWithDefaults = applyFieldConfigDefaults(currentFieldConfig, plugin);\n48:   const fieldConfigWithOptimalColorMode = adaptFieldColorMode(plugin, fieldConfigWithDefaults,
+     isAfterPluginChange);\n49: \n50:   return { options: optionsWithDefaults, fieldConfig: fieldConfigWithOptimalColorMode };\n51: }\n52: \n\n# github.com/grafana/grafana –
+     public/app/features/dashboard-scene/utils/panelStyleConfigs.ts\n226:  *\n227:  * fieldConfig.defaults.custom:\n228:  *   lineWidth        – bar border width\n229: \n431:  *\n432:  *
+     fieldConfig.defaults.custom:\n433:  *   fillOpacity      – marker fill opacity\n434: \n404:  *\n405:  * fieldConfig.defaults.custom:\n406:  *   lineWidth   – border width of status cells\n407: \n\n#
+     github.com/grafana/grafana – public/app/plugins/panel/table/__snapshots__/migrations.test.ts.snap\n4: {\n5:   \"fieldConfig\": {\n6:     \"defaults\": {\n7:       \"custom\": {},\n8:     },\n9: \n23:
+     {\n24:   \"fieldConfig\": {\n25:     \"defaults\": {\n26:       \"custom\": {},\n27:     },\n28: \n42: {\n43:   \"fieldConfig\": {\n44:     \"defaults\": {\n45:       \"custom\": {},\n46:     },\n47:
+     \n\n# github.com/grafana/grafana – public/app/plugins/panel/state-timeline/migrations.ts\n34:     };\n35:     fieldConfig.defaults.custom = custom;\n36:     options.mergeValues = true;\n37: \n38: \n83:
+     \n84:     if (fieldConfig.defaults.mappings?.length) {\n85:       fieldConfig.defaults.mappings = expandColorMappings(fieldConfig.defaults.mappings);\n86:     }\n87: \n30: \n31:     const custom:
+     FieldConfig = {\n32:       fillOpacity: 100,\n33: \n\n# github.com/grafana/grafana – public/app/plugins/panel/table/migrations.ts\n330: \n331:   panel.fieldConfig.defaults.custom =
+     panel.fieldConfig.defaults.custom ?? {};\n332:   panel.fieldConfig.defaults.custom.wrapText = legacyDefaultWrapText;\n333:   delete panel.fieldConfig.defaults.custom.cellOptions?.wrapText;\n334: \n335:
+     \n370: \n371:       panel.fieldConfig.defaults.custom = {\n372:         ...panel.fieldConfig.defaults.custom,\n373:         footer: {\n374: \n395:       } else if (oldFooter.fields &&
+     oldFooter.fields.length === 1) {\n396:         delete panel.fieldConfig.defaults.custom.footer;\n397: \n398: \n\n# github.com/grafana/grafana –
+     public/app/plugins/panel/logstable/hooks/useOrganizeFields.tsx\n133:       const isFirstField = (!isLevelFirstField && fieldIndex === 0) || (isLevelFirstField && fieldIndex === 1);\n134:       //
+     Deep-merge so panel defaults (e.g. custom.filterable) survive when the field already has custom.* from applyFieldOverrides.\n135:       const baseConfig = merge({}, fieldConfig.defaults,
+     field.config);\n136: \n137: \n98:   onPermalinkClick: BuildLinkToLogLine,\n99:   fieldConfig: FieldConfigSource\n100: ) => {\n101: \n29:   onPermalinkClick: BuildLinkToLogLine;\n30:   fieldConfig:
+     FieldConfigSource;\n31: }\n32: \n\n# github.com/grafana/grafana – packages/grafana-data/src/field/fieldOverrides.ts\n419: // config -> from DS\n420: // defaults -> from Panel config\n421: export function
+     setFieldConfigDefaults(config: FieldConfig, defaults: FieldConfig, context: FieldOverrideEnv) {\n422:   // For cases where we have links on the datasource config and the panel config, we need to merge
+     them\n423:   if (config.links && defaults.links) {\n424:     // Combine the data source links and the panel default config links. mutate rather than allocate new for perf reasons.\n425:
+     config.links.push(...defaults.links);\n426:   }\n427: \n439: \n440:   for (const fieldConfigProperty of context.fieldConfigRegistry.list()) {\n441:     let destination = config;\n442:     let source =
+     defaults;\n443:     if (fieldConfigProperty.isCustom) {\n444:       config.custom ??= {};\n445:       destination = config.custom;\n446:       source = defaults.custom;\n447:     }\n448: \n184:       //
+     will be filled in by panel's field configuration\n185:       setFieldConfigDefaults(config, source.defaults, context);\n186: \n187: \n\n# github.com/grafana/grafana –
+     public/app/plugins/panel/state-timeline/module.tsx\n19: import { timelinePanelChangedHandler } from './migrations';\n20: import { defaultFieldConfig, defaultOptions, type FieldConfig, type Options } from
+     './panelcfg.gen';\n21: \n22: export const plugin = new PanelPlugin<Options, FieldConfig>(StateTimelinePanel)\n23:   .setPanelChangeHandler(timelinePanelChangedHandler)\n24:   .useFieldConfig({\n25:
+     standardOptions: {\n26:       [FieldConfigProperty.Color]: {\n27:         settings: {\n28: \n2:   FieldColorModeId,\n3:   FieldConfigProperty,\n4:   FieldType,\n5: \n104:       .addBooleanSwitch({\n105:
+           path: 'mergeValues',\n106:         name: t('state-timeline.name-merge-equal-consecutive-values', 'Merge equal consecutive values'),\n107:         category,\n108:         defaultValue:
+     defaultOptions.mergeValues,\n109:       })\n110: \n\n# github.com/grafana/grafana – devenv/dev-dashboards/transforms/smoke.json\n33:       },\n34:       \"description\": \"Three-field frame (time, value,
+     category). Used by editor-mount smoke tests; also drives the Merge applicability check because a single frame is not mergeable.\",\n35:       \"fieldConfig\": {\n36:         \"defaults\": {\n37:
+     \"custom\": {\n38:             \"align\": \"auto\",\n39: \n93:       \"description\": \"Frame without a time field. Used to assert the Format time transformation appears disabled in the picker.\",\n94:
+         \"fieldConfig\": {\n95:         \"defaults\": {\n96:           \"custom\": {\n97:             \"align\": \"auto\",\n98: \n152:       \"description\": \"Two-field frame (time, value). Total field
+     count is below the three fields required by Grouping to matrix, so its card should be disabled in the picker.\",\n153:       \"fieldConfig\": {\n154:         \"defaults\": {\n155:           \"custom\":
+     {\n156:             \"align\": \"auto\",\n157: \n\n# github.com/grafana/grafana – devenv/dev-dashboards/panel-timeline/timeline-thresholds-mappings.json\n803:       },\n804:       \"fieldConfig\": {\n805:
+             \"defaults\": {\n806:           \"color\": {\n807: \n808:           },\n809:           \"custom\": {\n810:             \"axisPlacement\": \"auto\",\n811: \n1082:       },\n1083:
+     \"fieldConfig\": {\n1084:         \"defaults\": {\n1085:           \"custom\": {\n1086:             \"lineWidth\": 0,\n1087: \n\n# github.com/grafana/grafana –
+     devenv/dev-dashboards/panel-status-history/status-history-thresholds-mappings.json\n803:       },\n804:       \"fieldConfig\": {\n805:         \"defaults\": {\n806:           \"color\": {\n807: \n808:
+           },\n809:           \"custom\": {\n810:             \"axisPlacement\": \"auto\",\n811: \n1082:       },\n1083:       \"fieldConfig\": {\n1084:         \"defaults\": {\n1085:           \"custom\":
+     {\n1086:             \"lineWidth\": 0,\n1087: \n\n# github.com/grafana/grafana – devenv/dev-dashboards/panel-timeline/timeline-demo.json\n32:       \"datasource\": { \"type\":
+     \"grafana-testdata-datasource\" },\n33:       \"fieldConfig\": {\n34:         \"defaults\": {\n35:           \"color\": {\n36: \n37:           },\n38:           \"custom\": {\n39:
+     \"fillOpacity\": 80,\n40: \n131:       \"datasource\": { \"type\": \"grafana-testdata-datasource\" },\n132:       \"fieldConfig\": {\n133:         \"defaults\": {\n134:           \"color\": {\n135: \n\n#
+     github.com/grafana/grafana – public/app/features/dashboard-scene/panel-edit/PanelOptionsPane.test.tsx\n145: \n146:       panel.setState({ fieldConfig: fieldConfig });\n147: \n148:
+     expect(panel.state.fieldConfig.defaults.color?.mode).toBe('palette-classic');\n149:       expect(panel.state.fieldConfig.defaults.thresholds?.mode).toBe('absolute');\n150:
+     expect(panel.state.fieldConfig.defaults.unit).toBe('flop');\n151:       expect(panel.state.fieldConfig.defaults.decimals).toBe(2);\n152:
+     expect(panel.state.fieldConfig.overrides).toHaveLength(2);\n153:       expect(panel.state.fieldConfig.overrides[1].properties).toHaveLength(1);\n154:
+     expect(panel.state.fieldConfig.defaults.custom).toHaveProperty('axisBorderShow');\n155: \n156: \n103:       // eslint-disable-next-line @typescript-eslint/no-explicit-any\n104:
+     expect((panel.state.fieldConfig.defaults.custom as any).axisBorderShow).toEqual(true);\n105:     });\n106: \n112: \n113:       const fieldConfig = panel.state.fieldConfig;\n114: \n115:
+     fieldConfig.defaults = {\n116:         ...fieldConfig.defaults,\n117:         unit: 'flop',\n118: \n\n# github.com/grafana/grafana – devenv/dev-dashboards/panel-timeline/timeline-modes.json\n32:
+     \"datasource\": { \"type\": \"grafana-testdata-datasource\" },\n33:       \"fieldConfig\": {\n34:         \"defaults\": {\n35:           \"color\": {\n36: \n37:           },\n38:           \"custom\":
+     {\n39:             \"fillOpacity\": 70,\n40: \n166:       \"datasource\": { \"type\": \"grafana-testdata-datasource\" },\n167:       \"fieldConfig\": {\n168:         \"defaults\": {\n169:
+     \"color\": {\n170: \n\n# github.com/grafana/grafana – public/app/plugins/panel/state-timeline/__snapshots__/migrations.test.ts.snap\n4: {\n5:   \"fieldConfig\": {\n6:     \"defaults\": {\n7:
+     \"custom\": {\n8:         \"fillOpacity\": 100,\n9: \n71:   \"options\": {\n72:     \"mergeValues\": true,\n73:   },\n74: \n"}
+
+⏺ sourcegraph - keyword_search (MCP)(query: "repo:github.com/grafana/grafana/apps/dashboard/pkg/migration mergeFieldConfig")
+  ⎿  {
+       "text": "No results.\n\nSearch alert: No repositories found\nTry using a different `repo:<regexp>` filter to see results"
+     }
+
+                                                                                                                                                                       12:40 PM claude-haiku-4-5-20251001
+⏺ Let me search for panel import and fieldConfig handling:
+
+⏺ sourcegraph - keyword_search (MCP)(query: "repo:github.com/grafana/grafana/apps/dashboard fieldConfig import panel")
+  ⎿  {
+       "text": "No results.\n\nSearch alert: No repositories found\nTry using a different `repo:<regexp>` filter to see results"
+     }
+
+⏺ sourcegraph - deepsearch (MCP)(question: "In the Grafana v38 dashboard migration, find the code that handles merging fieldConfig defaults with custom properties during panel import. The bug silently drops
+  fieldConfig.defaults.custom during import.")
+  ⎿  {
+       "text": "Here is a precise breakdown of the bug, where it lived, and how it was fixed.\n\n---\n\n## The V38 `fieldConfig.defaults.custom` Drop Bug\n\n### Where the bug
+     was\n\n[`apps/dashboard/pkg/migration/schemaversion/v38.go`](https://demo.sourcegraph.com/r/github.com/grafana/grafana/-/blob/apps/dashboard/pkg/migration/schemaversion/v38.go) — the `processPanelsV38`
+     function.\n\n### The buggy logic (before commit `26d36ec`)\n\nThe original code used a chain of early-exit type assertions before calling `migrateOverrides`:\n\n```go\n// BUGGY original code\ndefaults, ok
+     := fieldConfig[\"defaults\"].(map[string]interface{})\nif !ok {\n    continue  // skip entire panel if defaults missing\n}\n\ncustom, ok := defaults[\"custom\"].(map[string]interface{})\nif !ok {\n
+     continue  // skip entire panel if defaults.custom missing ← BUG\n}\n\n// Migrate displayMode to cellOptions\nif displayMode, exists := custom[\"displayMode\"]; exists {\n    ...\n}\n\n// This line was
+     ONLY reached if defaults.custom existed\nmigrateOverrides(fieldConfig)\n```\n\nThe `continue` on the `defaults[\"custom\"]` assertion caused `migrateOverrides` to **never be called** for panels where
+     `fieldConfig.defaults.custom` was absent or empty — even if those panels had overrides containing `custom.displayMode` properties that needed migration. Those override `displayMode` values were silently
+     left in the old format.\n\n### The fix (commit [`26d36ec`](https://demo.sourcegraph.com/github.com/grafana/grafana/-/commit/26d36ec7ffbc16df82cab8098a6e8ce5de7fe4f7))\n\nThe fix restructures the two
+     concerns — defaults migration and overrides migration — so that `migrateOverrides` is **always called unconditionally**, while defaults migration is gated only when the relevant fields exist:\n\n```go\n//
+     FIXED code — current state in v38.go lines 115–131\n\n// Process defaults.custom if it exists\nif defaults, ok := fieldConfig[\"defaults\"].(map[string]interface{}); ok {\n    if custom, ok :=
+     defaults[\"custom\"].(map[string]interface{}); ok {\n        // Migrate displayMode to cellOptions in defaults\n        if displayMode, exists := custom[\"displayMode\"]; exists {\n            if
+     displayModeStr, ok := displayMode.(string); ok {\n                custom[\"cellOptions\"] = migrateTableDisplayModeToCellOptions(displayModeStr)\n            }\n            delete(custom,
+     \"displayMode\")\n        }\n    }\n}\n\n// Update any overrides referencing the cell display mode\n// This must be called regardless of whether defaults.custom
+     exists\nmigrateOverrides(fieldConfig)\n```\n\n### The `migrateOverrides` function\n\n[Lines
+     135–176](https://demo.sourcegraph.com/r/github.com/grafana/grafana/-/blob/apps/dashboard/pkg/migration/schemaversion/v38.go?L135-L176) walk `fieldConfig.overrides[]`, find any property with `id ==
+     \"custom.displayMode\"`, rename it to `\"custom.cellOptions\"`, and convert its string value using `migrateTableDisplayModeToCellOptions`.\n\n### The `migrateTableDisplayModeToCellOptions`
+     converter\n\n[Lines 178–209](https://demo.sourcegraph.com/r/github.com/grafana/grafana/-/blob/apps/dashboard/pkg/migration/schemaversion/v38.go?L178-L209) maps the legacy flat string to a structured
+     object:\n\n| Legacy `displayMode` | New `cellOptions` |\n|---|---|\n| `\"basic\"` | `{ type: \"gauge\", mode: \"basic\" }` |\n| `\"gradient-gauge\"` | `{ type: \"gauge\", mode: \"gradient\" }` |\n|
+     `\"lcd-gauge\"` | `{ type: \"gauge\", mode: \"lcd\" }` |\n| `\"color-background\"` | `{ type: \"color-background\", mode: \"gradient\" }` |\n| `\"color-background-solid\"` | `{ type: \"color-background\",
+     mode: \"basic\" }` |\n| anything else | `{ type: <original string> }` |\n\n### Summary\n\nThe root cause was that the two migration concerns — (1) migrating `defaults.custom.displayMode` and (2)
+     migrating overrides — were coupled inside a single linear chain of assertions. If a panel had no `defaults.custom` (entirely valid), the `continue` short-circuited the entire panel loop iteration,
+     silently skipping override migration. The fix decouples them into independent conditional blocks and moves `migrateOverrides` outside any guard condition.\nLink:
+     https://demo.sourcegraph.com/deepsearch/e51de931-71cb-41b3-ac98-410ce83d1af2\nDeep search complete — results returned."
+     }
+
+                                                                                                                                                                       12:41 PM claude-haiku-4-5-20251001
+⏺ Perfect! I found comprehensive information about the v38 migration bug. Here's the summary:
+
+  Summary: Grafana v38 Dashboard Migration Bug
+
+  Key Files Found
+
+  ┌──────────────────────────────────────────────────────────┬───────────────────────────────────────────────┐
+  │                           File                           │                    Purpose                    │
+  ├──────────────────────────────────────────────────────────┼───────────────────────────────────────────────┤
+  │ apps/dashboard/pkg/migration/schemaversion/v38.go        │ V38 schema migration implementation           │
+  ├──────────────────────────────────────────────────────────┼───────────────────────────────────────────────┤
+  │ apps/dashboard/pkg/migration/schemaversion/migrations.go │ Schema version constants & migration registry │
+  └──────────────────────────────────────────────────────────┴───────────────────────────────────────────────┘
+
+  Schema Version Constants
+
+  Location: apps/dashboard/pkg/migration/schemaversion/migrations.go:10-13
+  const (
+      MIN_VERSION    = 0
+      LATEST_VERSION = 42
+  )
+  V38 is registered at line 91 in the GetMigrations() function.
+
+  The Bug Details
+
+  Location: apps/dashboard/pkg/migration/schemaversion/v38.go:90-132 in processPanelsV38()
+
+  Root Cause: The function had a logic error where it would skip migrateOverrides() calls for panels lacking fieldConfig.defaults.custom. When a panel had overrides containing custom.displayMode properties but
+  no defaults.custom, those overrides were silently left unmigrated.
+
+  Key Functions:
+
+  1. V38() (line 75) — Entry point, sets schemaVersion and calls processPanelsV38()
+  2. processPanelsV38() (line 90) — The buggy function that processes panels recursively. The fix moved migrateOverrides(fieldConfig) outside the conditional guards so it's always called (line 131)
+  3. migrateOverrides() (line 136-176) — Migrates override properties from old custom.displayMode format to new custom.cellOptions format
+  4. migrateTableDisplayModeToCellOptions() (line 179-209) — Converts legacy displayMode strings to structured cellOptions objects:
+    - "gradient-gauge" → { type: "gauge", mode: "gradient" }
+    - "color-background" → { type: "color-background", mode: "gradient" }
+    - etc.
+
+  The fix ensures migrateOverrides() is called unconditionally for all table panels, regardless of whether defaults.custom exists.
+
+✻ Sautéed for 1m 18s
+

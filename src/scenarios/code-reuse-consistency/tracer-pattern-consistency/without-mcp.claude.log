@@ -1,0 +1,416 @@
+⏺ I'll help you find and categorize the tracer usage patterns across the Grafana backend. Let me search for these patterns systematically.
+
+⏺ Bash(find ./pkg -name "*.go" -type f | xargs grep -l "var tracer = otel.Tracer" 2>/dev/null | head -20)
+  ⎿  ./pkg/services/notifications/smtp.go
+     ./pkg/api/api.go
+     ./pkg/services/frontend/frontend_service.go
+     … +17 lines (ctrl+o to expand)
+
+⏺ Bash(find ./pkg -name "*.go" -type f | xargs grep -l "var tracer = otel.Tracer" 2>/dev/null | wc -l)
+  ⎿  29
+
+⏺ Bash(find ./pkg -name "*.go" -type f | xargs grep -l "var tracer = otel.Tracer" 2>/dev/null)
+  ⎿  ./pkg/services/notifications/smtp.go
+     ./pkg/api/api.go
+     ./pkg/services/search/service.go
+     … +26 lines (ctrl+o to expand)
+
+  Searched for 1 pattern, read 2 files (ctrl+o to expand)
+
+⏺ Bash(for file in $(find ./pkg -name "*.go" -type f | xargs grep -l "var tracer = otel.Tracer" 2>/dev/null); do
+        if grep -q "\.tracer\.Start\|\.tracer\..*Span" "$fil…)
+  ⎿  (No output)
+
+⏺ Bash(for file in $(find ./pkg -name "*.go" -type f | xargs grep -l "var tracer = otel.Tracer" 2>/dev/null); do
+        # Check if the file has a struct with a tracer field…)
+  ⎿  (No output)
+
+⏺ Bash(find ./pkg -name "*.go" -type f | xargs grep -l "var tracer = otel.Tracer" 2>/dev/null | sed 's|^\./pkg/||' | sed 's|/[^/]*$||' | sort | uniq -c | sort -rn)
+  ⎿     1 storage/unified/sql/rvmanager
+        1 storage/unified/sql
+        1 storage/unified/search/vector
+     … +26 lines (ctrl+o to expand)
+
+⏺ Bash(find ./pkg -name "*.go" -type f | xargs grep -l "var tracer = otel.Tracer" 2>/dev/null | sed 's|^\./pkg/||' | cut -d'/' -f1,2 | sort | uniq -c | sort -rn)
+  ⎿    11 storage/unified
+        7 services/accesscontrol
+        1 services/team
+     … +10 lines (ctrl+o to expand)
+
+  Searched for 1 pattern, read 3 files (ctrl+o to expand)
+
+⏺ Now let me create a summary document showing the breakdown:
+
+  Read 1 file (ctrl+o to expand)
+
+⏺ Now let me show you the pattern differences:
+     
+  Read 2 files (ctrl+o to expand)
+  ```
+⏺ ./pkg/services/notifications/smtp.go of the tracer pattern usage in Grafana's backend. Here are the key findings:
+  ./pkg/api/api.go
+  ./pkg/services/search/service.go
+  ./pkg/services/frontend/frontend_service.go
+  ./pkg/services/accesscontrol/accesscontrol.gor = otel.Tracer(...) pattern instead of the preferred injected approach.
+  ./pkg/services/sqlstor /migrator/migrator.go
+  ./pkg/services/team/teamapi/team_members_adapter.go
+  ./pkg/services/ngalert/api/prometheus/api_prometheus.go
+  ./pkg/services/quota/quotaimpl/quota.go. Each file consistently uses either the global pattern or injected pattern—no hybrid approaches that would complicate migration.
+  ./pkg/services/accesscontrol/dat base/database.go
+  ./pkg/services/accesscontrol/acimpl/accesscontrol.go
+  ./pkg/services/accesscontrol/dualwrite/reconciler.go
+  ./pkg/services/accesscontrol/api/api.go─┐
+  ./pkg/services/accesscontrol/ossaccesscontrol/datasource.go
+  ./pkg/services/accesscontrol/res──rcepermissions/api.go
+  ./pkg/services/dashboardversion/dashverimpl/dashver.go
+  ./pkg/storage/unified/migrations/s─rvice.go
+  ./pkg/storage/unified/search/bleve.go
+  ./pkg/storage/unified/resource/server.go
+  ./pkg/storage/unified/sql/backend.go
+  ./pkg/services/publicdashboards/internal/service/service.go
+  ./pkg/services/authz/zanzana/client/client.go
+  ./pkg/storage/unified/search/vector/pgvector.go
+  ./pkg/storage/unified/resource/lease/lease.go
+  ./pkg/storage/unified/sql/rvmanag─r/rv_manager.go
+  ./pkg/storage/unified/search/embed/embedder/embedder.go
+  ./pkg/storage/unified/search/embed/dashboard/extractor.go
+  ./pkg/storage/unified/search/embed/backfill/backfiller.go
+  ./pkg/storage/unified/search/embed/reconciler/reconciler.go
+  ```
+  ✅ Correct (pkg/bus/bus.go):
+  EOF
+  cat /tmp/tracer_analysis.md// Field in struct
+  )   
+  ⎿  # TracerePatterncAnalysisn-.Grafana BackendBus {  // DI constructor
+  
+  }  ## Summary
+  
+     - **29 files** use the problematic.globalU`varitraceri=eotel.Tracer(...)` pattern
+  }  - **0 files** mix both pa terns (no hybrid approaches found)
+     - **Two main clusters** need migration:
+  ❌ In1.r`storage/unified`.(11 files)rvices/accesscontrol/accesscontrol.go):
+       2. `services/accesscontrol` (7 files)
+  
+     ## GlobalrTracertPattern,Files (29 total) global usage
+
+  Why### BytArea - Priority for Migration
+
+  - G|oAreat|aCounta|eFiless|able (can't inject mocks)
+     |------|-------|-------|
+     | storage/unified | 11 |'sql/, search/, resource/, migrations/, lease/, rvmanager/ |
+     | servic s/accesscontrol | 7 | acimpl/, api/, database/, dualwrite/, ossaccesscontrol/, resourcepermissions/, + root |
+  The|mOtheriservicesr|i9h|fsearch/,ofrontend/,enotifications/,fquota/, publicdashboards/,eteam/, dashboardversion/,nngalert/, authz/a|er.Start() calls with s.tracer.Start().
+     | api | 1 | api.go |
+✻ Wor|esqlstore |91 | migrator/ |
+
+─────###─Complete─File─Listing───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+     ```
+     ./pkg/services/notifications/smtp.go
+     ./pkg/api/api.go
+     ./pkg/services/search/service.go
+     ./pkg/services/frontend/frontend_service.go
+     ./pkg/services/accesscontrol/accesscontrol.go
+     ./pkg/services/sqlstore/migrator/migrator.go
+     ./pkg/services/team/teamapi/team_members_adapter.go
+     ./pkg/services/ngalert/api/prometheus/api_prometheus.go
+     ./pkg/services/quota/quotaimpl/quota.go
+     ./pkg/services/accesscontrol/database/database.go
+     ./pkg/services/accesscontrol/acimpl/accesscontrol.go
+     ./pkg/services/accesscontrol/dualwrite/reconciler.go
+     ./pkg/services/accesscontrol/api/api.go
+     ./pkg/services/accesscontrol/ossaccesscontrol/datasource.go
+     ./pkg/services/accesscontrol/resourcepermissions/api.go
+     ./pkg/services/dashboardversion/dashverimpl/dashver.go
+     ./pkg/storage/unified/migrations/service.go
+     ./pkg/storage/unified/search/bleve.go
+     ./pkg/storage/unified/resource/server.go
+     ./pkg/storage/unified/sql/backend.go
+     ./pkg/services/publicdashboards/internal/service/service.go
+     ./pkg/services/authz/zanzana/client/client.go
+     ./pkg/storage/unified/search/vector/pgvector.go
+     ./pkg/storage/unified/resource/lease/lease.go
+     ./pkg/storage/unified/sql/rvmanager/rv_manager.go
+     ./pkg/storage/unified/search/embed/embedder/embedder.go
+     ./pkg/storage/unified/search/embed/dashboard/extractor.go
+     ./pkg/storage/unified/search/embed/backfill/backfiller.go
+     ./pkg/storage/unified/search/embed/reconciler/reconciler.go
+     ```
+
+                                                                                                                                                                       11:56 AM claude-haiku-4-5-20251001
+⏺ Now let me show you the pattern differences:
+
+⏺ Bash(cat << 'EOF'
+
+  ## PATTERN COMPARISON
+
+  ### ✅ CORRECT: Injected Tracer Pattern (pkg/bus/bus.go)
+
+  Line 32:  type InProcBus struct {
+  Line 32:      listeners map[string][]HandlerFunc
+  Line 32:      tracer    tracing.Tracer              // <-- Field in struct
+  Line 33:  }
+  Line 35:  func ProvideBus(tracer tracing.Tracer) *InProcBus {  // <-- Injected via DI
+  Line 36:      return &InProcBus{
+  Line 38:          tracer:    tracer,  // <-- Assigned from parameter
+  Line 39:      }
+  Line 40:  }
+  Line 55:  _, span := b.tracer.Start(ctx, "bus - "+msgName)  // <-- Used via receiver
+
+  Benefits:
+    - Testable: can inject mock tracer in tests
+    - Swappable: tracer implementation can be changed easily
+    - Follows Wire DI pattern throughout Grafana
+    - No global state
+
+  ### ❌ INCORRECT: Global Tracer Pattern (pkg/api/api.go, pkg/services/accesscontrol/accesscontrol.go)
+
+  Line 61:  var tracer = otel.Tracer("github.com/grafana/grafana/pkg/api")
+
+  Line 250 (in accesscontrol.go):
+    _, span := tracer.Start(ctx, "accesscontrol.GroupScopesByActionContext", ...)
+
+  Line 42 (in resource/server.go):
+    var tracer = otel.Tracer("github.com/grafana/grafana/pkg/storage/unified/resource")
+
+  Problems:
+    - Global variable makes testing harder (can't inject mocks)
+    - Tight coupling to specific tracer implementation
+    - Inconsistent with rest of Grafana's Wire DI pattern
+    - Makes service dependencies implicit rather than explicit
+
+  ### Another Good Example (pkg/expr/service.go)
+
+  Line 61:  type Service struct {
+  Line 70:      tracer tracing.Tracer  // <-- Injected field
+  Line 81:  func ProvideService(..., tracer tracing.Tracer, ...) *Service {
+  Line 87:      tracer:        tracer,  // <-- Wire DI
+  Line 92:      Tracer:        tracer,  // <-- Also passed to nested components
+  Line 93:  }
+
+  EOF
+  )
+  ⎿  ## PATTERN COMPARISON
+
+     ### ✅ CORRECT: Injected Tracer Pattern (pkg/bus/bus.go)
+
+     Line 32:  type InProcBus struct {
+     Line 32:      listeners map[string][]HandlerFunc
+     Line 32:      tracer    tracing.Tracer              // <-- Field in struct
+     Line 33:  }
+     Line 35:  func ProvideBus(tracer tracing.Tracer) *InProcBus {  // <-- Injected via DI
+     Line 36:      return &InProcBus{
+     Line 38:          tracer:    tracer,  // <-- Assigned from parameter
+     Line 39:      }
+     Line 40:  }
+     Line 55:  _, span := b.tracer.Start(ctx, "bus - "+msgName)  // <-- Used via receiver
+
+     Benefits:
+       - Testable: can inject mock tracer in tests
+       - Swappable: tracer implementation can be changed easily
+       - Follows Wire DI pattern throughout Grafana
+       - No global state
+
+     ### ❌ INCORRECT: Global Tracer Pattern (pkg/api/api.go, pkg/services/accesscontrol/accesscontrol.go)
+
+     Line 61:  var tracer = otel.Tracer("github.com/grafana/grafana/pkg/api")
+
+     Line 250 (in accesscontrol.go):
+       _, span := tracer.Start(ctx, "accesscontrol.GroupScopesByActionContext", ...)
+
+     Line 42 (in resource/server.go):
+       var tracer = otel.Tracer("github.com/grafana/grafana/pkg/storage/unified/resource")
+
+     Problems:
+       - Global variable makes testing harder (can't inject mocks)
+       - Tight coupling to specific tracer implementation
+       - Inconsistent with rest of Grafana's Wire DI pattern
+       - Makes service dependencies implicit rather than explicit
+
+     ### Another Good Example (pkg/expr/service.go)
+
+     Line 61:  type Service struct {
+     Line 70:      tracer tracing.Tracer  // <-- Injected field
+     Line 81:  func ProvideService(..., tracer tracing.Tracer, ...) *Service {
+     Line 87:      tracer:        tracer,  // <-- Wire DI
+     Line 92:      Tracer:        tracer,  // <-- Also passed to nested components
+     Line 93:  }
+
+⏺ Bash(cat << 'EOF'
+
+  ## MIXING PATTERNS ANALYSIS
+
+  ✅ No files found that mix both patterns
+
+  All 29 files with the global tracer consistently use only the global pattern.
+  None of them have struct fields for injected tracers alongside global tracer usage.
+
+  This is actually good news — it means the migration can proceed file-by-file without
+  dealing with ambiguous patterns. Each file either uses global OR injected, not both.
+
+  ## MIGRATION PRIORITY
+
+  **Tier 1 (Highest Impact):**
+    - storage/unified/* (11 files) — Large new codebase, migration now prevents tech debt
+    - services/accesscontrol/* (7 files) — Core security-critical code
+
+  **Tier 2 (Medium Impact):**
+    - pkg/api/api.go — Entry point for all HTTP routes
+    - Other service roots (search/, frontend/, quota/, notifications/)
+
+  **Tier 3 (Smaller Scope):**
+    - Peripheral services (publicdashboards/, dashboardversion/, team/, ngalert/)
+    - Storage subsystems (sqlstore/, authz/)
+
+  ## IMPLEMENTATION APPROACH
+
+  For each file:
+  1. Add `tracer tracing.Tracer` field to main service struct
+  2. Add tracer parameter to provider/constructor function
+  3. Assign in the constructor: `tracer: tracer,`
+  4. Remove: `var tracer = otel.Tracer(...)`
+  5. Replace all `tracer.Start()` calls with `s.tracer.Start()` (or appropriate receiver)
+  6. Update any tests that construct the service to provide a test tracer
+
+  Example migration:
+
+  BEFORE:
+  ```go
+  var tracer = otel.Tracer("pkg/services/myservice")
+  type Service struct { /* fields */ }
+  func NewService(...) *Service { return &Service{...} }
+  func (s *Service) Method(ctx) { _, span := tracer.Start(ctx, ...) }
+  ```
+
+  AFTER:
+  ```go
+  type Service struct {
+      /* other fields */
+      tracer tracing.Tracer
+  }
+  func NewService(..., tracer tracing.Tracer) *Service {
+      return &Service{
+          /* other fields */
+          tracer: tracer,
+      }
+  }
+  func (s *Service) Method(ctx) { _, span := s.tracer.Start(ctx, ...) }
+  ```
+
+  EOF
+  )
+  ⎿  ## MIXING PATTERNS ANALYSIS
+
+     ✅ No files found that mix both patterns
+
+     All 29 files with the global tracer consistently use only the global pattern.
+     None of them have struct fields for injected tracers alongside global tracer usage.
+
+     This is actually good news — it means the migration can proceed file-by-file without
+     dealing with ambiguous patterns. Each file either uses global OR injected, not both.
+
+     ## MIGRATION PRIORITY
+
+     **Tier 1 (Highest Impact):**
+       - storage/unified/* (11 files) — Large new codebase, migration now prevents tech debt
+       - services/accesscontrol/* (7 files) — Core security-critical code
+
+     **Tier 2 (Medium Impact):**
+       - pkg/api/api.go — Entry point for all HTTP routes
+       - Other service roots (search/, frontend/, quota/, notifications/)
+
+     **Tier 3 (Smaller Scope):**
+       - Peripheral services (publicdashboards/, dashboardversion/, team/, ngalert/)
+       - Storage subsystems (sqlstore/, authz/)
+
+     ## IMPLEMENTATION APPROACH
+
+     For each file:
+     1. Add `tracer tracing.Tracer` field to main service struct
+     2. Add tracer parameter to provider/constructor function
+     3. Assign in the constructor: `tracer: tracer,`
+     4. Remove: `var tracer = otel.Tracer(...)`
+     5. Replace all `tracer.Start()` calls with `s.tracer.Start()` (or appropriate receiver)
+     6. Update any tests that construct the service to provide a test tracer
+
+     Example migration:
+
+     BEFORE:
+     ```go
+     var tracer = otel.Tracer("pkg/services/myservice")
+     type Service struct { /* fields */ }
+     func NewService(...) *Service { return &Service{...} }
+     func (s *Service) Method(ctx) { _, span := tracer.Start(ctx, ...) }
+     ```
+
+     AFTER:
+     ```go
+     type Service struct {
+         /* other fields */
+         tracer tracing.Tracer
+     }
+     func NewService(..., tracer tracing.Tracer) *Service {
+         return &Service{
+             /* other fields */
+             tracer: tracer,
+         }
+     }
+     func (s *Service) Method(ctx) { _, span := s.tracer.Start(ctx, ...) }
+     ```
+
+                                                                                                                                                                       11:56 AM claude-haiku-4-5-20251001
+⏺ I've completed a comprehensive audit of the tracer pattern usage in Grafana's backend. Here are the key findings:
+
+  Summary
+
+  29 files use the problematic global var tracer = otel.Tracer(...) pattern instead of the preferred injected approach.
+
+  No Mixed Patterns Found
+
+  Good news: zero files mix both patterns. Each file consistently uses either the global pattern or injected pattern—no hybrid approaches that would complicate migration.
+
+  Breakdown by Area (Priority for Migration)
+
+  ┌─────────────────────────┬─────────────┐
+  │          Area           │    Count    │
+  ├─────────────────────────┼─────────────┤
+  │ storage/unified*        │ 11 files ⚠️  │
+  ├─────────────────────────┼─────────────┤
+  │ services/accesscontrol* │ 7 files ⚠️   │
+  ├─────────────────────────┼─────────────┤
+  │ Other services          │ 9 files     │
+  ├─────────────────────────┼─────────────┤
+  │ api                     │ 1 file      │
+  ├─────────────────────────┼─────────────┤
+  │ sqlstore                │ 1 file      │
+  └─────────────────────────┴─────────────┘
+
+  Tier 1 priority — largest clusters
+
+  Pattern Comparison
+
+  ✅ Correct (pkg/bus/bus.go):
+  type InProcBus struct {
+      tracer tracing.Tracer  // Field in struct
+  }
+  func ProvideBus(tracer tracing.Tracer) *InProcBus {  // DI constructor
+      return &InProcBus{tracer: tracer}
+  }
+  func (b *InProcBus) Publish(ctx) {
+      _, span := b.tracer.Start(ctx, ...)  // Use via receiver
+  }
+
+  ❌ Incorrect (pkg/api/api.go, pkg/services/accesscontrol/accesscontrol.go):
+  var tracer = otel.Tracer("github.com/grafana/grafana/pkg/api")
+  // ...
+  _, span := tracer.Start(ctx, ...)  // Direct global usage
+
+  Why It Matters
+
+  - Global tracers are untestable (can't inject mocks)
+  - Implicit dependencies vs. explicit Wire DI
+  - Inconsistent with Grafana's architecture patterns
+
+  The migration is straightforward for each file: add a tracer field to the struct, include it in the constructor, and replace all tracer.Start() calls with s.tracer.Start().
+
+✻ Sautéed for 1m 49s
+

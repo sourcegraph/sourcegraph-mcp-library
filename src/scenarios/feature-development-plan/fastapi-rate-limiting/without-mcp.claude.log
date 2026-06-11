@@ -1,0 +1,73 @@
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Ready to code?
+
+ Here is Claude's plan:
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Plan: Built-in RateLimiter Dependency for FastAPI
+  
+ Context
+
+ FastAPI has no built-in rate limiting. The goal is to add a RateLimiter class to the core library that can be attached to any route (or router) via Depends(). The design follows the existing security
+ class pattern (APIKeyHeader, OAuth2PasswordBearer) exactly: config is set at definition time in __init__, per-request logic runs in async def __call__.
+
+ Confirmed: starlette.status.HTTP_429_TOO_MANY_REQUESTS = 429 exists. No existing rate-limiting code anywhere in FastAPI. No new dependencies needed.
+
+ ---
+ Design
+
+ How FastAPI's DI System Works (relevant to this design)
+
+ 1. Depends(callable, use_cache=False) — use_cache=False is required for the rate limiter; otherwise FastAPI caches the per-request result and skips the counter if the same limiter instance appears more
+ than once in the dependency tree.
+ 2. request: Request injection — FastAPI detects the Request type annotation in __call__ and injects the live request object. Parameter name is arbitrary; the type annotation is what triggers injection.
+ 3. response: Response injection — Same mechanism. FastAPI detects Response type annotation and injects a shared response stub; headers set on it are merged into the real response after the route handler
+ returns.
+ 4. Execution order — Dependencies run after all middleware passes through. A route-level dependency (e.g., @app.get("/items/", dependencies=[Depends(limiter)])) runs for that route only. A router-level
+ dependency (APIRouter(dependencies=[Depends(limiter)])) runs for every route on that router. An app-level dependency (FastAPI(dependencies=[Depends(limiter)])) runs for all routes.
+
+ Algorithm: Fixed Window
+
+ key = key_func(request)          # default: request.client.host
+ now = time.time()
+ if key not in store or now >= window_start + window_seconds:
+     store[key] = (1, now)         # reset window
+ else:
+     count += 1
+     if count > max_requests: raise 429
+
+ State stored in dict[str, tuple[int, float]] (key → (count, window_start)). Protected by asyncio.Lock per key to prevent race conditions under concurrent requests.
+
+ Response Headers
+
+ On every successful request:
+ - X-RateLimit-Limit: <max_requests>
+ - X-RateLimit-Remaining: <max_requests - count>
+ - X-RateLimit-Reset: <int(window_start + window_seconds)>
+
+ On 429:
+ - Same headers above (with Remaining: 0) plus Retry-After: <seconds_until_reset>
+ - Raised as HTTPException(status_code=429, detail="Rate limit exceeded", headers={...})
+
+ ---
+ Files to Create / Modify
+
+ 1. fastapi/ratelimit.py — new file
+ 2. fastapi/__init__.py — add export: from fastapi.ratelimit import RateLimiter as RateLimiter
+ 3. tests/test_ratelimit.py — new test file
+
+ Test cases to cover:
+ - Requests under the limit return 200 with correct X-RateLimit-* headers
+ - Request at the limit returns 200 with Remaining: 0
+ - Request over the limit returns 429 with Retry-After header
+ - Window resets after window_seconds (mock time.time)
+ - key_func overrides are respected (e.g., key by API key header)
+ - Route-level, router-level, and app-level attachment all work
+ - use_cache=False note tested by attaching the same instance twice and verifying count is 2 not 1
+
+ ---
+ Verification
+
+ 1. Run new tests: python -m pytest tests/test_ratelimit.py -v
+ 2. Run full suite to check for regressions: python -m pytest tests/ -x -q
+ 3. Verify import: python -c "from fastapi import RateLimiter; print(RateLimiter)"
+ ╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯

@@ -88,6 +88,8 @@ export interface Scenario {
   subtitle: string;
   repo?: string;
   repoUrl?: string;
+  /** When true, shows the confidence meter in agent columns. Defaults to false. */
+  showConfidence?: boolean;
   prompts: ScenarioPrompt[];
 }
 

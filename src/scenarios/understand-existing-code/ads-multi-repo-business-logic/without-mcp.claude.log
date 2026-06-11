@@ -1,0 +1,382 @@
+⏺ Read(/Users/asridhar/work/Sourcegraph/code/cmp/adsabs/adsabs/app.py · lines 1-200)
+  ⎿  Read 200 lines
+
+⏺ Read(/Users/asridhar/work/Sourcegraph/code/cmp/adsabs/adsabs/core/classic/user.py · lines 1-150)
+  ⎿  Read 120 lines
+
+⏺ Read(/Users/asridhar/work/Sourcegraph/code/cmp/adsabs/adsabs/core/before_request_funcs.py)
+  ⎿  Read 66 lines
+  
+⏺ Bash(grep -r "class.*User\|def.*check_permission" /Users/asridhar/work/Sourcegraph/code/cmp/adsabs/adsabs/modules/api --include="*.py"
+  -n)
+  ⎿  /Users/asridhar/work/Sourcegraph/code/cmp/adsabs/adsabs/modules/api/api_user.py:109:class AdsApiUser(AdsUser):
+     /Users/asridhar/work/Sourcegraph/code/cmp/adsabs/adsabs/modules/api/api_user.py:174:    def check_permissions(self, form):
+  
+⏺ Read(/Users/asridhar/work/Sourcegraph/code/cmp/adsabs/adsabs/modules/api/api_user.py · lines 174-253)
+  ⎿  Read 70 lines
+
+⏺ Bash(grep -r "def ip_allowed\|allowed_ips" /Users/asridhar/work/Sourcegraph/code/cmp/adsabs/adsabs/modules/api --include="*.py" -n -A3)
+  ⎿  /Users/asridhar/work/Sourcegraph/code/cmp/adsabs/adsabs/modules/api/api_user.py:149:    def get_allowed_ips(self):
+     /Users/asridhar/work/Sourcegraph/code/cmp/adsabs/adsabs/modules/api/api_user.py:150:        return
+     self.user_rec.developer_perms.get('allowed_ips', [])
+     /Users/asridhar/work/Sourcegraph/code/cmp/adsabs/adsabs/modules/api/api_user.py-151-
+     /Users/asridhar/work/Sourcegraph/code/cmp/adsabs/adsabs/modules/api/api_user.py:152:    def set_allowed_ips(self, ips):
+     /Users/asridhar/work/Sourcegraph/code/cmp/adsabs/adsabs/modules/api/api_user.py-153-        assert type(ips) is list
+     /Users/asridhar/work/Sourcegraph/code/cmp/adsabs/adsabs/modules/api/api_user.py:154:
+     self.user_rec.developer_perms['allowed_ips'] = ips
+     /Users/asridhar/work/Sourcegraph/code/cmp/adsabs/adsabs/modules/api/api_user.py-155-        self.user_rec.save()
+     /Users/asridhar/work/Sourcegraph/code/cmp/adsabs/adsabs/modules/api/api_user.py-156-
+     /Users/asridhar/work/Sourcegraph/code/cmp/adsabs/adsabs/modules/api/api_user.py:157:    def add_allowed_ips(self, ips):
+     /Users/asridhar/work/Sourcegraph/code/cmp/adsabs/adsabs/modules/api/api_user.py-158-        assert type(ips) is list
+     /Users/asridhar/work/Sourcegraph/code/cmp/adsabs/adsabs/modules/api/api_user.py:159:
+     self.user_rec.developer_perms.setdefault('allowed_ips', [])
+     /Users/asridhar/work/Sourcegraph/code/cmp/adsabs/adsabs/modules/api/api_user.py:160:
+     self.user_rec.developer_perms['allowed_ips'] += ips
+     /Users/asridhar/work/Sourcegraph/code/cmp/adsabs/adsabs/modules/api/api_user.py-161-        self.user_rec.save()
+     /Users/asridhar/work/Sourcegraph/code/cmp/adsabs/adsabs/modules/api/api_user.py-162-
+     /Users/asridhar/work/Sourcegraph/code/cmp/adsabs/adsabs/modules/api/api_user.py-163-    @cache.memoize(60)
+     /Users/asridhar/work/Sourcegraph/code/cmp/adsabs/adsabs/modules/api/api_user.py:164:    def ip_allowed(self, request_ip):
+     /Users/asridhar/work/Sourcegraph/code/cmp/adsabs/adsabs/modules/api/api_user.py:165:        allowed_ips = self.get_allowed_ips()
+     /Users/asridhar/work/Sourcegraph/code/cmp/adsabs/adsabs/modules/api/api_user.py:166:        if not allowed_ips: return True
+     /Users/asridhar/work/Sourcegraph/code/cmp/adsabs/adsabs/modules/api/api_user.py-167-        request_ip =
+     ip_address(unicode(request_ip))
+     /Users/asridhar/work/Sourcegraph/code/cmp/adsabs/adsabs/modules/api/api_user.py:168:        for ip_or_range in allowed_ips:
+     /Users/asridhar/work/Sourcegraph/code/cmp/adsabs/adsabs/modules/api/api_user.py-169-            network =
+     ip_network(unicode(ip_or_range))
+     /Users/asridhar/work/Sourcegraph/code/cmp/adsabs/adsabs/modules/api/api_user.py-170-            if request_ip in network:
+     /Users/asridhar/work/Sourcegraph/code/cmp/adsabs/adsabs/modules/api/api_user.py-171-                return True
+  
+                                                                                                 08:53 AM claude-haiku-4-5-20251001
+⏺ Perfect! I now have a good understanding of the key systems. Let me save this to your project memory and provide you with a comprehensive
+  overview.
+  
+⏺ Write(/Users/asridhar/.claude/projects/-Users-asridhar-work-Sourcegraph-code-cmp-adsabs/memory/MEMORY.md)
+  ⎿  Wrote 3 lines to /Users/asridhar/.claude/projects/-Users-asridhar-work-Sourcegraph-code-cmp-adsabs/memory/MEMORY.md
+      1 - [ADS Authentication Architecture](auth_architecture.md) — Overview of how users authenticate and are tracked
+      2 - [API Rate Limiting & Permissions](api_permissions.md) — Permission levels and enforcement mechanisms
+      3 - [Saved Searches & Libraries](libraries_searches.md) — How user data is managed in ADS
+  
+⏺ Write(/Users/asridhar/.claude/projects/-Users-asridhar-work-Sourcegraph-code-cmp-adsabs/memory/auth_architecture.md)
+  ⎿  Wrote 70 lines to /Users/asridhar/.claude/projects/-Users-asridhar-work-Sourcegraph-code-cmp-adsabs/memory/auth_architecture.md
+       1 ---
+       2 name: ads_auth_architecture
+       3 description: Two-tier user authentication system with classic ADS backend and local MongoDB tracking
+       4 metadata: 
+       5   node_type: memory
+       6   type: reference
+       7   originSessionId: 7453fce1-29bb-43d5-87cb-5d995d1ac8b5
+       8 ---
+       9 
+      10 ## Authentication Flow
+      11
+      12 ADS has a **two-tier authentication system**:
+      13
+      14 ### 1. Classic ADS Backend (External)
+      15 - **Source**: `/adsabs/core/classic/user.py`
+      16 - Makes HTTP requests to `ADS_LOGIN_URL` configured in `config.ADS_LOGIN_URL`
+      17 - Functions:
+      18   - `get_classic_user(login, password)` — validates credentials against classic ADS
+      19   - `create_classic_user()`, `update_classic_password()`, `reset_classic_password()`
+      20   - Returns JSON with fields: `cookie`, `loggedin`, `myadsid`, `fullname`, `email`, `openurl_icon`
+      21
+      22 ### 2. Local MongoDB User Records
+      23 - **Model**: `AdsUserRecord` in `/adsabs/modules/user/models.py`
+      24 - Stored in MongoDB collection `ads_users`
+      25 - Key fields:
+      26   - `cookie_id` — unique identifier from classic ADS (index)
+      27   - `username` — email address (unique index)
+      28   - `anonymous` (bool) — marks if user is anonymous
+      29   - `active` (bool) — account active status
+      30   - `developer_key` — API developer key (if enabled)
+      31   - `developer_perms` — dict of API permissions
+      32   - `remote_login_system` — login provider URL
+      33   - `myads_id` — link to classic ADS
+      34
+      35 ## Anonymous vs Authenticated Users
+      36
+      37 **Anonymous users:**
+      38 - `anonymous=True` in user record
+      39 - Don't have a real login
+      40 - Generated UUID stored in cookie `config.COOKIE_ADSABS2_NAME`
+      41 - Used for tracking unlogged visitors
+      42 - See: `/adsabs/core/before_request_funcs.py:set_user_cookie_id()`
+      43
+      44 **Authenticated users:**
+      45 - `anonymous=False`, `active=True`
+      46 - Have valid credentials in classic ADS
+      47 - Created via `AdsUser.from_classic_user()` which syncs data from classic ADS
+      48 - Updates username, name, myads_id from classic ADS on each login
+      49
+      50 ## User Object Hierarchy
+      51 ```
+      52 AdsUser (base class)
+      53 ├── is_authenticated() → returns AUTHENTICATED=True
+      54 ├── is_active() → checks user_rec.active
+      55 ├── is_anonymous() → checks user_rec.anonymous
+      56 └── AdsApiUser (extends AdsUser for API access)
+      57     └── adds developer_key, developer_perms, permission checking
+      58 ```
+      59
+      60 ## Key Flows
+      61
+      62 **New user first-time login:**
+      63 1. Credentials sent to classic ADS via `get_classic_user()`
+      64 2. Classic ADS returns cookie_id + user metadata
+      65 3. `AdsUser.from_classic_user()` creates/updates local MongoDB record
+      66 4. User logged in via Flask-Login
+      67
+      68 **Session Management:**
+      69 - Flask-Login loads user via `load_user(id)` in app.py:123 → calls `AdsUser.from_id(cookie_id)`
+      70 - Looks up user record in MongoDB by cookie_id
+
+⏺ Write(/Users/asridhar/.claude/projects/-Users-asridhar-work-Sourcegraph-code-cmp-adsabs/memory/api_permissions.md)
+  ⎿  Wrote 94 lines to /Users/asridhar/.claude/projects/-Users-asridhar-work-Sourcegraph-code-cmp-adsabs/memory/api_permissions.md
+       1 ---
+       2 name: api_rate_limiting_perms
+       3 description: API permission levels and enforcement via developer keys
+       4 metadata:
+       5   node_type: memory
+       6   type: reference
+       7   originSessionId: 7453fce1-29bb-43d5-87cb-5d995d1ac8b5
+       8 ---
+       9
+      10 ## Permission System
+      11
+      12 **NOT traditional rate limiting** (no requests-per-minute). Instead: **capability-based access control**.
+      13
+      14 ### Three Permission Levels
+      15 Defined in `/adsabs/modules/api/api_user.py:26-52`:
+      16
+      17 **1. Basic** (default)
+      18 - `max_rows`: 100 results per query
+      19 - `max_start`: 10,000 (can't paginate past 10k)
+      20 - `facets`: disabled
+      21 - `highlight`: disabled
+      22 - Used for anonymous/free users
+      23
+      24 **2. Devel** (development)
+      25 - `max_rows`: 200
+      26 - `max_start`: 50,000
+      27 - `facets`: enabled
+      28 - `facet_limit_max`: 100 (limit per facet)
+      29 - `highlight`: enabled
+      30 - `highlight_limit_max`: 4
+      31 - `highlight_fields`: selected fields from config
+      32
+      33 **3. Collab** (collaboration/power users)
+      34 - `max_rows`: 200
+      35 - `max_start`: None (no pagination limit)
+      36 - `allowed_fields`: extended field list from config
+      37 - `facet_limit_max`: 500
+      38 - `highlight`: enabled, all fields allowed
+      39
+      40 ### API Authentication
+      41
+      42 **Developer Key Flow** (in `/adsabs/modules/api/views.py`):
+      43 1. Client passes `dev_key` query parameter
+      44 2. `@api_user_required` decorator validates the key
+      45 3. Looks up user via `AdsApiUser.from_dev_key(dev_key)` — queries MongoDB `developer_key` field
+      46 4. Caches result 60 seconds with `@cache.memoize(60)`
+      47 5. Returns 403 if dev_key invalid or unrecognized
+      48
+      49 **Dev Key Security:**
+      50 - Generated as random 16-char alphanumeric via `_create_dev_key()`
+      51 - Stored as SHA512 hash with salt in `developer_perms['developer_key']`
+      52 - Validation uses `validate_dev_key(dev_key, hash_struct)` — constant-time comparison
+      53 - See lines 60-89 in api_user.py for hashing strategy
+      54
+      55 ### IP Whitelisting
+      56
+      57 Each user can set `allowed_ips` in their `developer_perms`:
+      58 - `get_allowed_ips()` — returns list of IP addresses/CIDR ranges
+      59 - `ip_allowed(request_ip)` — checks if request IP matches any whitelisted range
+      60 - Uses Python `ipaddress` module for CIDR parsing
+      61 - Returns `True` if no IPs configured (no restriction)
+      62 - Applied via `@api_ip_allowed` decorator in views.py
+      63
+      64 ### Permission Enforcement
+      65
+      66 In `check_permissions()` (line 174):
+      67 - Validates each request against user's `developer_perms`
+      68 - Checks:
+      69   - Facets are enabled + within limit
+      70   - Row count doesn't exceed `max_rows`
+      71   - Pagination `start` doesn't exceed `max_start`
+      72   - Requested fields in allowed set
+      73   - Highlight fields enabled + within limit
+      74
+      75 Raises `ApiPermissionError` if any check fails.
+      76
+      77 ### API Endpoints Requiring Authentication
+      78 All endpoints in `/adsabs/modules/api/views.py` require:
+      79 1. `@api_user_required` — valid dev_key
+      80 2. `@api_ip_allowed` — whitelisted IP (if configured)
+      81
+      82 Endpoints:
+      83 - `/api/settings/` — returns user's permissions
+      84 - `/api/search/` — search with permissions
+      85 - `/api/search/metrics/` — search + citation metrics
+      86 - `/api/record/<id>/` — single record lookup
+      87 - `/api/record/<id>/metrics/` — record + metrics
+      88
+      89 ### Monitoring
+      90 All API calls logged to statsd:
+      91 - `api.user.authentication.success/failed/unknown`
+      92 - `api.user.access_from_ip.denied`
+      93 - `api.search.success/invalid`
+      94 - `api.record.success/not_found`
+
+⏺ Write(/Users/asridhar/.claude/projects/-Users-asridhar-work-Sourcegraph-code-cmp-adsabs/memory/libraries_searches.md)
+  ⎿  Wrote 98 lines to /Users/asridhar/.claude/projects/-Users-asridhar-work-Sourcegraph-code-cmp-adsabs/memory/libraries_searches.md
+       1 ---
+       2 name: ads_libraries_saved_searches
+       3 description: Storage and management of user libraries and saved searches in ADS
+       4 metadata:
+       5   node_type: memory
+       6   type: reference
+       7   originSessionId: 7453fce1-29bb-43d5-87cb-5d995d1ac8b5
+       8 ---
+       9
+      10 ## Overview
+      11
+      12 User libraries and saved searches are managed via **mongogut** (MongoDB utility library) in the **adsgut** module. These ar
+         e Flask blueprint operations that interface with MongoDB collections.
+      13
+      14 ## Code Location
+      15 - **Main**: `/adsabs/modules/adsgut/webservices.py`
+      16 - **Views**: `/adsabs/modules/adsgut/views.py`
+      17 - **Related**: `/adsabs/modules/adsgut/webchrome.py`
+      18
+      19 ## Architecture
+      20
+      21 ### Data Model
+      22 Uses **mongogut** library with MongoDB as backing store. Key concepts:
+      23 - `ptassets` (from mongogut) — items and tags storage
+      24 - Collections stored in MongoDB (accessed via `g.db` in requests)
+      25 - User scoped — each user owns their libraries and searches
+      26
+      27 ### User Association
+      28 - Libraries/searches linked to user via:
+      29   - Direct user_id reference
+      30   - Nick-based ownership (user "nickname")
+      31 - Accessible via `_userget()` / `_userpostget()` helper functions
+      32
+      33 ### HTTP Interface
+      34
+      35 **Endpoints** (from views.py):
+      36 - GET/POST endpoints for listing, creating, updating, deleting libraries
+      37 - GET/POST endpoints for saved searches
+      38 - Pagination support via `pagtuple` parameter (offset:limit)
+      39 - Sorting support via `sort` parameter (field:direction)
+      40 - Filtering via `criteria` and `query` parameters
+      41
+      42 ### API Details
+      43
+      44 **Helper Functions** (webservices.py):
+      45 - `_userget(g, qdict)` — extract user from GET params
+      46 - `_userpostget(g, postdict)` — extract user from POST params
+      47 - `_sortget(qdict)` — parse sort specification
+      48 - `_criteriaget(qdict)` — parse filter criteria
+      49 - `_queryget(qdict)` — parse query filters
+      50 - `_pagtupleget(qdict)` — parse pagination (offset:pagesize)
+      51
+      52 **Query Format Examples:**
+      53 ```
+      54 # Filter: field:operator:value
+      55 criteria=basic__fqin:eq:something
+      56
+      57 # Query: field:value (equality assumed)
+      58 query=posting__whenposted:2023
+      59
+      60 # Pagination: offset:pagesize
+      61 pagtuple=15:30
+      62
+      63 # Sort: field:direction (True=asc, False=desc)
+      64 sort=posting__whenposted:False
+      65 ```
+      66
+      67 ### JSON Encoding
+      68
+      69 Custom encoder `MongoEngineJsonEncoder` handles:
+      70 - MongoDB `ObjectId` → converts to unicode string
+      71 - `Document` objects → to_mongo() output
+      72 - Datetime objects → ISO format strings
+      73 - Iterables → list conversion
+      74
+      75 ## Data Flow
+      76
+      77 1. **Request arrives** at adsgut endpoint
+      78 2. **Parse user context** — extract user from params or use current_user
+      79 3. **Query MongoDB** — fetch items using mongogut
+      80 4. **Apply filters/sorts** — apply sort specs and criteria
+      81 5. **Pagination** — apply offset/limit
+      82 6. **Encode response** — convert to JSON with custom encoder
+      83 7. **Return** to client
+      84
+      85 ## Permission Model
+      86
+      87 - Users can only access their own libraries/searches
+      88 - Admin users can view other users' items via `useras` parameter
+      89 - Cross-user sharing may be supported (check specific endpoint code)
+      90
+      91 ## Integration Points
+      92
+      93 - **User module**: Links to `AdsUser` objects
+      94 - **MongoDB**: Persistent storage via mongoengine
+      95 - **Statsd**: Monitoring of CRUD operations
+      96 - **Templates**: Some operations return HTML (adsgut has templates)
+      97
+      98 **Note**: Rate limiting does NOT apply to library/search endpoints — only to `/api/*` endpoints. Libraries/searches are par
+         t of the traditional web interface.
+
+                                                                                                 08:54 AM claude-haiku-4-5-20251001
+⏺ ADS Architecture Summary
+
+  I've created a knowledge base for you. Here's the quick overview of the four systems:
+
+  1. User Authentication [auth_architecture.md (link)]
+
+  ADS uses a two-tier system:
+  - Classic ADS backend — external legacy system validates credentials via HTTP
+  - Local MongoDB — tracks users in ads_users collection with fields like cookie_id, username, developer_key, active, anonymous
+
+  Anonymous users get a UUID cookie; real users have anonymous=False and sync metadata from classic ADS on login.
+
+  2. API Permissions [api_permissions.md (link)]
+
+  No request-rate-limiting — instead, capability-based access control with 3 tiers:
+  - Basic: 100 rows max, 10k pagination limit, no facets/highlight
+  - Devel: 200 rows, 50k pagination, facets (limit 100), highlight enabled
+  - Collab: 200 rows, unlimited pagination, extended fields, facets (limit 500)
+
+  Enforced via:
+  - Developer key (dev_key query param) → hashed with SHA512 salt
+  - IP whitelisting (optional CIDR ranges per user)
+  - Permission check on each API call validates fields, rows, pagination, facet/highlight settings
+  - All endpoints require @api_user_required + @api_ip_allowed decorators
+
+  3. Saved Searches & Libraries [libraries_searches.md (link)]
+
+  Managed via mongogut library interface in /adsgut module:
+  - MongoDB-backed, user-scoped collections
+  - HTTP endpoints for CRUD with filtering/sorting/pagination
+  - Accessible via criteria, query, sort, pagtuple URL parameters
+  - Custom JSON encoder handles ObjectId/DateTime serialization
+  - No API rate limiting — only web interface rate limits apply
+
+  4. Anonymous vs Authenticated Differences
+
+  - Anonymous: UUID cookie, anonymous=True, limited to basic API permissions, no saved data
+  - Authenticated: Real email/password from classic ADS, anonymous=False, can have dev keys, all permissions available, libraries/searches
+  persisted
+
+  I've saved this to your project memory. The key files to explore:
+  - /adsabs/modules/user/user.py — User class & authentication
+  - /adsabs/modules/api/api_user.py — Permission levels & validation
+  - /adsabs/modules/adsgut/webservices.py — Library/search endpoints
+
+✻ Baked for 1m 16s
+
+※ recap: You joined the ADS team to understand authentication, API permissions, and saved searches. I've documented all four systems in
+  your project memory; next, explore the key files in /adsabs/modules to see the code in context. (disable recaps in /config)
+
