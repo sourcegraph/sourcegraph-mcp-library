@@ -42,7 +42,11 @@ function ConversationStreamImpl({ events }: ConversationStreamProps) {
       ref={containerRef}
       aria-live="polite"
     >
-      {isEmpty && <p>Waiting for agent…</p>}
+      {isEmpty && (
+        <p className="conversation-stream__idle-hint">
+          Press <kbd>space</kbd> to begin
+        </p>
+      )}
       {visibleEvents.map((event) => {
         if (event.type === "assistant") {
           return (
