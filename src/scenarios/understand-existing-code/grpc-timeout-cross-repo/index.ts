@@ -1,6 +1,6 @@
 import type { PromptMetrics, ScenarioPrompt } from "../../../types/scenario";
-import withoutMcpLog from "./without-mcp.claude.log?raw";
-import withMcpLog from "./with-mcp.claude.log?raw";
+import withoutMcpLog from "./without-mcp.trajectory.json?raw";
+import withMcpLog from "./with-mcp.trajectory.json?raw";
 import { withoutMCP, withMCP } from "./timeline";
 
 const metrics: PromptMetrics = {
@@ -13,8 +13,7 @@ export const grpcTimeoutCrossRepoPrompt: ScenarioPrompt = {
   label: "Cross-repo protocol comparison",
   environment: "multi-repo",
   repos: [
-    { name: "grpc/grpc-go", url: "https://github.com/grpc/grpc-go" },
-    { name: "connectrpc/connect-go", url: "https://github.com/connectrpc/connect-go" },
+    { name: "grpc/grpc-go", url: "https://github.com/grpc/grpc-go" }, 
   ],
   text: "Trace how an RPC timeout propagates from a Go caller to the server in both grpc-go and connect-go: where does the client encode the context deadline onto the wire, how does the server parse and enforce it, and what is the key architectural difference in how the two libraries own protocol-specific timeout encoding?",
   metrics,
@@ -24,6 +23,7 @@ export const grpcTimeoutCrossRepoPrompt: ScenarioPrompt = {
     withoutMCP: withoutMcpLog,
     withMCP: withMcpLog,
   },
+  logsFileExtension: "json",
   qualityBreakdown: [
     {
       dimension: "Task Quality",
