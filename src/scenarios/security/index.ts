@@ -1,5 +1,4 @@
 import type { Scenario } from "../../types/scenario";
-import { aclBypassReviewPrompt } from "./acl-bypass-review";
 import { aclCodeAuditPrompt } from "./acl-code-audit";
 
 export const security: Scenario = {
@@ -9,7 +8,6 @@ export const security: Scenario = {
   repo: "apache/kafka",
   repoUrl: "https://github.com/apache/kafka",
   prompts: [
-    aclBypassReviewPrompt,
     aclCodeAuditPrompt,
   ],
 };

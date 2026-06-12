@@ -1,0 +1,372 @@
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Ready to code?
+
+ Here is Claude's plan:
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Plan: env.clipboardHistory Extension API
+  
+ Context
+
+ The goal is to add vscode.env.clipboardHistory as a new proposed extension API that lets extensions read the system clipboard history (a list of recently-copied text items). This follows the same lifecycle as every other
+ proposed VS Code API: a type declaration in vscode.proposed.*.d.ts → an IPC shape registered in extHost.protocol.ts → an ExtHost-side thin wrapper → a main-thread implementation backed by a platform service → wiring in
+ extHost.api.impl.ts → a checkProposedApiEnabled guard → opt-in via enabledApiProposals in package.json.
+
+ Note: This repo (/Users/asridhar/work/Sourcegraph/code/cmp/vscode) is a partial checkout. The VS Code core src/ tree is absent; only extensions/copilot/ and build tooling are present. The key implementation pattern was
+ reverse-engineered from the fixture file at:
+
+ extensions/copilot/src/extension/prompts/node/test/fixtures/extHost.api.impl.ts
+
+ All src/ paths below refer to the upstream VS Code core — add them to a full checkout of microsoft/vscode.
+
+ ---
+ How the Existing Extension API Pipeline Works
+
+ Understanding the full pipeline before adding anything new:
+
+ Layer 1 — Public type declaration (src/vscode-dts/)
+
+ vscode.d.ts declares the stable API surface. New proposed additions go in a separate file:
+
+ src/vscode-dts/vscode.proposed.<feature>.d.ts
+
+ These use declare module 'vscode' { ... } to augment the module without redefining it. Example: vscode.proposed.envShellEvent.d.ts adds env.onDidChangeShell.
+
+ Layer 2 — IPC channel shapes (src/vs/workbench/api/common/extHost.protocol.ts)
+
+ This single file is the contract between the Extension Host process (sandbox) and the Main/Renderer process. It defines two namespaces of typed channel identifiers:
+
+ - MainContext — identifiers for main-thread services that the extHost can call into
+ - ExtHostContext — identifiers for extHost actors that the main thread can call into
+
+ Each entry pairs a string key (for serialization) with a TypeScript interface (for type-safe proxying):
+
+ // excerpt showing the pattern
+ export const MainContext = {
+   MainThreadClipboard: createMainId<MainThreadClipboardShape>('MainThreadClipboard'),
+   MainThreadCommands: createMainId<MainThreadCommandsShape>('MainThreadCommands'),
+   // ...
+ };
+
+ export interface MainThreadClipboardShape extends IDisposable {
+   $readText(): Promise<string>;
+   $writeText(value: string): Promise<void>;
+   // --- NEW: add here ---
+   $readClipboardHistory(): Promise<{ value: string; timestamp: number }[]>;
+ }
+
+ Methods on these interfaces are prefixed $ by convention (marks them as RPC-destined).
+
+ Layer 3 — ExtHost-side actor (src/vs/workbench/api/common/extHostClipboard.ts)
+
+ The ExtHost class holds a proxy obtained from rpcProtocol.getProxy(MainContext.MainThreadClipboard) and wraps it in a developer-friendly API:
+
+ export class ExtHostClipboard {
+   readonly value: vscode.Clipboard;
+   constructor(mainContext: IMainContext) {
+     const proxy = mainContext.getProxy(MainContext.MainThreadClipboard);
+     this.value = Object.freeze({
+       readText: () => proxy.$readText(),
+       writeText: (value) => proxy.$writeText(value),
+     });
+   }
+ }
+
+ ExtHostClipboard is not registered in ExtHostContext (it never receives calls from the main thread), so it is created as a plain non-addressable instance (lines 206–207 of the fixture).
+
+ Layer 4 — Main-thread implementation (src/vs/workbench/api/browser/mainThreadClipboard.ts)
+
+ The main-thread class is decorated with @extHostNamedCustomer(MainContext.MainThreadClipboard) so the framework auto-registers it on startup. It injects the platform IClipboardService:
+
+ @extHostNamedCustomer(MainContext.MainThreadClipboard)
+ export class MainThreadClipboard implements MainThreadClipboardShape {
+   constructor(
+     _extHostContext: IExtHostContext,
+     @IClipboardService private readonly _clipboardService: IClipboardService
+   ) {}
+
+   dispose(): void {}
+   $readText(): Promise<string> { return this._clipboardService.readText(); }
+   $writeText(value: string): Promise<void> { return this._clipboardService.writeText(value); }
+ }
+
+ Layer 5 — API factory wiring (src/vs/workbench/api/common/extHost.api.impl.ts)
+
+ The createApiFactoryAndRegisterActors factory is where all extHost actors are instantiated and returned to extensions as the vscode namespace object. For clipboard (non-addressable, lines 206–207 + 324):
+
+ // instantiation (outside the per-extension factory closure)
+ const extHostClipboard = new ExtHostClipboard(rpcProtocol);
+
+ // wiring into env namespace (inside the per-extension factory closure)
+ const env: typeof vscode.env = {
+   // ...
+   get clipboard(): vscode.Clipboard { return extHostClipboard.value; },
+ };
+
+ Proposed APIs are gated immediately before returning:
+
+ get onDidChangeShell() {
+   checkProposedApiEnabled(extension, 'envShellEvent');
+   return extHostTerminalService.onDidChangeShell;
+ },
+
+ Layer 6 — Extension opt-in (package.json + vscode-api.d.ts)
+
+ An extension must declare each proposal it uses in two places:
+
+ package.json:
+ "enabledApiProposals": ["clipboardHistory"]
+
+ src/extension/vscode-api.d.ts (copilot extension, or any other extension):
+ /// <reference path="../../../../src/vscode-dts/vscode.proposed.clipboardHistory.d.ts" />
+
+ ---
+ Step-by-Step Plan: Adding env.clipboardHistory
+
+ Step 1 — Define the proposed API type
+
+ File: src/vscode-dts/vscode.proposed.clipboardHistory.d.ts (NEW)
+
+ declare module 'vscode' {
+   /**
+    * A single item in the system clipboard history.
+    */
+   export interface ClipboardHistoryItem {
+     /** The text content of this clipboard entry. */
+     readonly value: string;
+     /** ISO timestamp when this entry was copied. */
+     readonly timestamp: number;
+   }
+
+   export namespace env {
+     /**
+      * Read the system clipboard history, newest first.
+      * Requires the `clipboardHistory` proposed API to be enabled.
+      *
+      * @returns A thenable that resolves to an ordered list of recent clipboard entries.
+      */
+     export function readClipboardHistory(): Thenable<ClipboardHistoryItem[]>;
+   }
+ }
+
+ Step 2 — Add the IPC method to the clipboard shape
+
+ File: src/vs/workbench/api/common/extHost.protocol.ts
+
+ Find MainThreadClipboardShape and add one method:
+
+ export interface MainThreadClipboardShape extends IDisposable {
+   $readText(): Promise<string>;
+   $writeText(value: string): Promise<void>;
+   $readClipboardHistory(): Promise<Array<{ value: string; timestamp: number }>>;  // ADD
+ }
+
+ No new ExtHostContext or MainContext entry is needed — this rides the existing MainContext.MainThreadClipboard channel.
+
+ Step 3 — Extend the ExtHost clipboard wrapper
+
+ File: src/vs/workbench/api/common/extHostClipboard.ts
+
+ Add a readHistory() method on the ExtHostClipboard class and expose it. The existing value: vscode.Clipboard object cannot grow (it is frozen and typed by vscode.d.ts), so expose readHistory directly on the class:
+
+ export class ExtHostClipboard {
+   readonly value: vscode.Clipboard;
+   private readonly _proxy: MainThreadClipboardShape;
+
+   constructor(mainContext: IMainContext) {
+     this._proxy = mainContext.getProxy(MainContext.MainThreadClipboard);
+     this.value = Object.freeze({
+       readText: () => this._proxy.$readText(),
+       writeText: (value) => this._proxy.$writeText(value),
+     });
+   }
+
+   readHistory(): Promise<vscode.ClipboardHistoryItem[]> {
+     return this._proxy.$readClipboardHistory();
+   }
+ }
+
+ Step 4 — Implement the main-thread side
+
+ File: src/vs/workbench/api/browser/mainThreadClipboard.ts
+
+ Add $readClipboardHistory() to the MainThreadClipboard class. The platform IClipboardService interface will need a corresponding readHistory?() method added (or check if it already provides it via the ClipboardItem API). A
+ simple fallback for platforms that don't support history is to return the current text as a single-item array:
+
+ async $readClipboardHistory(): Promise<Array<{ value: string; timestamp: number }>> {
+   // IClipboardService.readHistory() must be implemented per platform.
+   // Fallback: single-item array from current clipboard text.
+   if (typeof this._clipboardService.readHistory === 'function') {
+     return this._clipboardService.readHistory();
+   }
+   const text = await this._clipboardService.readText();
+   return text ? [{ value: text, timestamp: Date.now() }] : [];
+ }
+
+ Also extend IClipboardService in src/vs/platform/clipboard/common/clipboardService.ts:
+
+ export interface IClipboardService {
+   readText(type?: string): Promise<string>;
+   writeText(value: string, type?: string): Promise<void>;
+   readHistory?(): Promise<Array<{ value: string; timestamp: number }>>;  // ADD optional
+ }
+
+ Platform implementations (src/vs/platform/clipboard/browser/clipboardService.ts, electron-sandbox/clipboardService.ts) can implement it using the native Clipboard History API or Electron's clipboard module.
+
+ Step 5 — Wire into the env namespace
+
+ File: src/vs/workbench/api/common/extHost.api.impl.ts
+
+ The extHostClipboard instance is already created as a non-addressable object (line 207 of fixture). Add readClipboardHistory to the env namespace object:
+
+ // namespace: env
+ const env: typeof vscode.env = {
+   // ... existing members ...
+   get clipboard(): vscode.Clipboard { return extHostClipboard.value; },
+
+   // ADD:
+   readClipboardHistory() {
+     checkProposedApiEnabled(extension, 'clipboardHistory');
+     return extHostClipboard.readHistory();
+   },
+ };
+
+ Step 6 — Register the proposal name in the validator
+
+ File: src/vs/workbench/services/extensions/common/extensions.ts
+
+ Find the allApiProposals or equivalent allowlist and add 'clipboardHistory'. This is what checkProposedApiEnabled validates against:
+
+ export const allApiProposals = Object.freeze({
+   // ... existing entries ...
+   clipboardHistory: 'Enable access to system clipboard history.',
+ });
+
+ Step 7 — Opt in the consuming extension
+
+ For the copilot extension (or any extension that wants to use this):
+
+ extensions/copilot/package.json:
+ "enabledApiProposals": [
+   "clipboardHistory",   // ADD
+     │ For the copilot extension (or any extension that wants to use this):                                                                                                                                                       │
+     │                                                                                                                                                                                                                            │
+     │ extensions/copilot/package.json:                                                                                                                                                                                           │
+     │ "enabledApiProposals": [                                                                                                                                                                                                   │
+     │   "clipboardHistory",   // ADD                                                                                                                                                                                             │
+     │   ...existing entries...                                                                                                                                                                                                   │
+     │ ]                                                                                                                                                                                                                          │
+     │                                                                                                                                                                                                                            │
+     │ extensions/copilot/src/extension/vscode-api.d.ts:                                                                                                                                                                          │
+     │ /// <reference path="../../../../src/vscode-dts/vscode.proposed.clipboardHistory.d.ts" />                                                                                                                                  │
+     │                                                                                                                                                                                                                            │
+     │ ---                                                                                                                                                                                                                        │
+     │ File Change Summary                                                                                                                                                                                                        │
+     │                                                                                                                                                                                                                            │
+     │ ┌───────────────────────────────────────────────────────────┬────────┬───────────────────────────────────────────────────────┐                                                                                             │
+     │ │                           File                            │ Action │                        Purpose                        │                                                                                             │
+     │ ├───────────────────────────────────────────────────────────┼────────┼───────────────────────────────────────────────────────┤                                                                                             │
+     │ │ src/vscode-dts/vscode.proposed.clipboardHistory.d.ts      │ NEW    │ Public type declaration                               │                                                                                             │
+     │ ├───────────────────────────────────────────────────────────┼────────┼───────────────────────────────────────────────────────┤                                                                                             │
+     │ │ src/vs/workbench/api/common/extHost.protocol.ts           │ MODIFY │ Add $readClipboardHistory to MainThreadClipboardShape │                                                                                             │
+     │ ├───────────────────────────────────────────────────────────┼────────┼───────────────────────────────────────────────────────┤                                                                                             │
+     │ │ src/vs/workbench/api/common/extHostClipboard.ts           │ MODIFY │ Add readHistory() method                              │                                                                                             │
+     │ ├───────────────────────────────────────────────────────────┼────────┼───────────────────────────────────────────────────────┤                                                                                             │
+     │                                                                                                                                                                                                     │
+     │ Step 7 — Opt in the consuming extension                                                                                                                                                             │
+     │                                                                                                                                                                                                     │
+     │ For the copilot extension (or any extension that wants to use this):                                                                                                                                │
+     │                                                                                                                                                                                                     │
+     │ extensions/copilot/package.json:                                                                                                                                                                    │
+     │ "enabledApiProposals": [                                                                                                                                                                            │
+     │   "clipboardHistory",   // ADD                                                                                                                                                                      │
+     │   ...existing entries...                                                                                                                                                                            │
+     │ ]                                                                                                                                                                                                   │
+     │                                                                                                                                                                                                     │
+     │ extensions/copilot/src/extension/vscode-api.d.ts:                                                                                                                                                   │
+     │ /// <reference path="../../../../src/vscode-dts/vscode.proposed.clipboardHistory.d.ts" />                                                                                                           │
+     │                                                                                                                                                                                                     │
+     │ ---                                                                                                                                                                                                 │
+     │ File Change Summary                                                                                                                                                                                 │
+     │                                                                                                                                                                                                     │
+     │ ┌───────────────────────────────────────────────────────────┬────────┬───────────────────────────────────────────────────────┐                                                                      │
+     │ │                           File                            │ Action │                        Purpose                        │                                                                      │
+     │ ├───────────────────────────────────────────────────────────┼────────┼───────────────────────────────────────────────────────┤                                                                      │
+     │ │ src/vscode-dts/vscode.proposed.clipboardHistory.d.ts      │ NEW    │ Public type declaration                               │                                                                      │
+     │ ├───────────────────────────────────────────────────────────┼────────┼───────────────────────────────────────────────────────┤                                                                      │
+     │ │ src/vs/workbench/api/common/extHost.protocol.ts           │ MODIFY │ Add $readClipboardHistory to MainThreadClipboardShape │                                                                      │
+     │ ├───────────────────────────────────────────────────────────┼────────┼───────────────────────────────────────────────────────┤                                                                      │
+     │ │ src/vs/workbench/api/common/extHostClipboard.ts           │ MODIFY │ Add readHistory() method                              │                                                                      │
+     │ ├───────────────────────────────────────────────────────────┼────────┼───────────────────────────────────────────────────────┤                                                                      │
+     │ │ src/vs/workbench/api/browser/mainThreadClipboard.ts       │ MODIFY │ Implement $readClipboardHistory                       │                                                                      │
+     │ ├───────────────────────────────────────────────────────────┼────────┼───────────────────────────────────────────────────────┤                                                                      │
+     │ │ src/vs/platform/clipboard/common/clipboardService.ts      │ MODIFY │ Add optional readHistory?() to IClipboardService      │                                                                      │
+     │ ├───────────────────────────────────────────────────────────┼────────┼───────────────────────────────────────────────────────┤                                                                      │
+     │ │ src/vs/workbench/api/common/extHost.api.impl.ts           │ MODIFY │ Wire readClipboardHistory into env namespace          │                                                                      │
+     │ ├───────────────────────────────────────────────────────────┼────────┼───────────────────────────────────────────────────────┤                                                                      │
+     │ │ src/vs/workbench/services/extensions/common/extensions.ts │ MODIFY │ Register 'clipboardHistory' proposal name             │                                                                      │
+     │ ├───────────────────────────────────────────────────────────┼────────┼───────────────────────────────────────────────────────┤                                                                      │
+     │ │ extensions/copilot/package.json                           │ MODIFY │ Add "clipboardHistory" to enabledApiProposals         │                                                                      │
+     │ ├───────────────────────────────────────────────────────────┼────────┼───────────────────────────────────────────────────────┤                                                                      │
+     │ │ extensions/copilot/src/extension/vscode-api.d.ts          │ MODIFY │ Add /// <reference ...> for the new proposal          │                                                                      │
+     │ └───────────────────────────────────────────────────────────┴────────┴───────────────────────────────────────────────────────┘                                                                      │
+     │                                                                                                                                                                                                     │
+     │ ---                                                                                                                                                                                                 │
+     │ Verification                                                                                                                                                                                        │
+     │                                                                                                                                                                                                     │
+     │ 1. Type check: yarn compile in the VS Code root — ensures the ClipboardHistoryItem type is visible to extension code and all IPC shapes are consistent.                                             │
+     │ 2. Unit test: Add a test in src/vs/workbench/api/test/browser/extHostClipboard.test.ts that mocks $readClipboardHistory on the main-thread proxy and asserts the returned array shape.              │
+     │ 3. Runtime test (proposed API gate): In a test extension without "clipboardHistory" in enabledApiProposals, call vscode.env.readClipboardHistory() and confirm an error is thrown. In one with it,  │
+     │ confirm the call resolves.                                                                                                                                                                          │
+     │ 4. Integration test: Enable clipboard history on your OS (macOS: System Settings → Keyboard → Text Input → "Use clipboard history"), copy three items, call vscode.env.readClipboardHistory() in an │
+     │ extension, and assert the returned array contains at least those items in order.                                                                                                                    │
+     ╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+❯ /cost                                                                                                                                                                                                     
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  Settings  Status   Config   Usage   Stats
+     │                                                                                                                                                                                                     │
+     │ extensions/copilot/package.json:                                                                                                                                                                    │
+     │ "enabledApiProposals": [                                                                                                                                                                            │
+     │   "clipboardHistory",   // ADD                                                                                                                                                                      │
+     │   ...existing entries...                                                                                                                                                                            │
+     │ ]                                                                                                                                                                                                   │
+     │                                                                                                                                                                                                     │
+     │ extensions/copilot/src/extension/vscode-api.d.ts:                                                                                                                                                   │
+     │ /// <reference path="../../../../src/vscode-dts/vscode.proposed.clipboardHistory.d.ts" />                                                                                                           │
+     │                                                                                                                                                                                                     │
+     │ ---                                                                                                                                                                                                 │
+     │ File Change Summary                                                                                                                                                                                 │
+     │                                                                                                                                                                                                     │
+     │ ┌───────────────────────────────────────────────────────────┬────────┬───────────────────────────────────────────────────────┐                                                                      │
+     │ │                           File                            │ Action │                        Purpose                        │                                                                      │
+     │ ├───────────────────────────────────────────────────────────┼────────┼───────────────────────────────────────────────────────┤                                                                      │
+     │ │ src/vscode-dts/vscode.proposed.clipboardHistory.d.ts      │ NEW    │ Public type declaration                               │                                                                      │
+     │ ├───────────────────────────────────────────────────────────┼────────┼───────────────────────────────────────────────────────┤                                                                      │
+     │ │ src/vs/workbench/api/common/extHost.protocol.ts           │ MODIFY │ Add $readClipboardHistory to MainThreadClipboardShape │                                                                      │
+     │ ├───────────────────────────────────────────────────────────┼────────┼───────────────────────────────────────────────────────┤                                                                      │
+     │ │ src/vs/workbench/api/common/extHostClipboard.ts           │ MODIFY │ Add readHistory() method                              │                                                                      │
+     │ ├───────────────────────────────────────────────────────────┼────────┼───────────────────────────────────────────────────────┤                                                                      │
+     │ │ src/vs/workbench/api/browser/mainThreadClipboard.ts       │ MODIFY │ Implement $readClipboardHistory                       │                                                                      │
+     │ ├───────────────────────────────────────────────────────────┼────────┼───────────────────────────────────────────────────────┤                                                                      │
+     │ │ src/vs/platform/clipboard/common/clipboardService.ts      │ MODIFY │ Add optional readHistory?() to IClipboardService      │                                                                      │
+     │ ├───────────────────────────────────────────────────────────┼────────┼───────────────────────────────────────────────────────┤                                                                      │
+     │ │ src/vs/workbench/api/common/extHost.api.impl.ts           │ MODIFY │ Wire readClipboardHistory into env namespace          │                                                                      │
+     │ ├───────────────────────────────────────────────────────────┼────────┼───────────────────────────────────────────────────────┤                                                                      │
+     │ │ src/vs/workbench/services/extensions/common/extensions.ts │ MODIFY │ Register 'clipboardHistory' proposal name             │                                                                      │
+     │ ├───────────────────────────────────────────────────────────┼────────┼───────────────────────────────────────────────────────┤                                                                      │
+     │ │ extensions/copilot/package.json                           │ MODIFY │ Add "clipboardHistory" to enabledApiProposals         │                                                                      │
+     │ ├───────────────────────────────────────────────────────────┼────────┼───────────────────────────────────────────────────────┤                                                                      │
+     │ │ extensions/copilot/src/extension/vscode-api.d.ts          │ MODIFY │ Add /// <reference ...> for the new proposal          │                                                                      │
+     │ └───────────────────────────────────────────────────────────┴────────┴───────────────────────────────────────────────────────┘                                                                      │
+     │                                                                                                                                                                                                     │
+     │ ---                                                                                                                                                                                                 │
+     │ Verification                                                                                                                                                                                        │
+     │                                                                                                                                                                                                     │
+     │ 1. Type check: yarn compile in the VS Code root — ensures the ClipboardHistoryItem type is visible to extension code and all IPC shapes are consistent.                                             │
+     │ 2. Unit test: Add a test in src/vs/workbench/api/test/browser/extHostClipboard.test.ts that mocks $readClipboardHistory on the main-thread proxy and asserts the returned array shape.              │
+     │ 3. Runtime test (proposed API gate): In a test extension without "clipboardHistory" in enabledApiProposals, call vscode.env.readClipboardHistory() and confirm an error is thrown. In one with it,  │
+     │ confirm the call resolves.                                                                                                                                                                          │
+     │ 4. Integration test: Enable clipboard history on your OS (macOS: System Settings → Keyboard → Text Input → "Use clipboard history"), copy three items, call vscode.env.readClipboardHistory() in an │
+     │ extension, and assert the returned array contains at least those items in order.                                                                                                                    │
+     ╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯

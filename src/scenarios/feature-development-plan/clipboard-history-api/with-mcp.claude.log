@@ -1,0 +1,249 @@
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Ready to code?
+
+ Here is Claude's plan:
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Plan: env.clipboardHistory Extension API
+  
+ Context
+
+ VS Code's env.clipboard API exposes only readText() / writeText(). Extensions that implement paste-history features, smart completions, or clipboard inspectors have no way to query what has been written to the clipboard
+ during a session. This plan adds env.getClipboardHistory() — a pull-based async API that returns an ordered list of clipboard entries written through VS Code during the current session.
+
+ Scope note: History is tracked at the IClipboardService level inside VS Code, so it captures all clipboard writes made through VS Code (editor copy, terminal copy, extension writeText calls). It does not track native OS
+ clipboard changes made by other apps — that would require OS polling and is out of scope.
+
+ Target repo: github.com/microsoft/vscode (the local repo at vscode_sg only contains extensions/ — a full clone of microsoft/vscode is required to implement this).
+
+ ---
+ New Public Surface (src/vscode-dts/vscode.d.ts)
+
+ Add adjacent to the existing Clipboard interface:
+
+ /**
+  * Represents a single clipboard history entry.
+  */
+ export interface ClipboardHistoryItem {
+     /** The text value that was written to the clipboard. */
+     readonly value: string;
+     /** Unix timestamp (ms) of when the entry was written. */
+     readonly timestamp: number;
+ }
+
+ export namespace env {
+     // existing: clipboard: Clipboard;
+
+     /**
+      * Returns the clipboard write history for this VS Code session,
+      * most recent entry first. Maximum 50 entries are retained.
+      */
+     export function getClipboardHistory(): Thenable<readonly ClipboardHistoryItem[]>;
+ }
+
+ ---
+ Step-by-Step Implementation
+
+ Step 1 — Extend IClipboardService with history tracking
+
+ File: src/vs/platform/clipboard/common/clipboardService.ts
+
+ Add an optional onDidWriteText event to the interface (keeps implementations backward-compatible):
+
+ // in IClipboardService interface
+ readonly onDidWriteText?: Event<string>;
+
+ Then in each platform implementation that calls writeText:
+ - src/vs/platform/clipboard/browser/clipboardService.ts — BrowserClipboardService: fire the event after a successful write.
+ - src/vs/workbench/services/clipboard/electron-browser/clipboardService.ts — NativeClipboardService: fire after nativeHostService.writeClipboardText() resolves.
+
+ ---
+ Step 2 — Protocol shapes (extHost.protocol.ts)
+
+ File: src/vs/workbench/api/common/extHost.protocol.ts
+
+ Add $readHistory() to the existing shape, and add ClipboardHistoryItem as a transferred DTO:
+
+ // extend existing shape
+ export interface MainThreadClipboardShape extends IDisposable {
+     $readText(): Promise<string>;
+     $writeText(value: string): Promise<void>;
+     $readHistory(): Promise<{ value: string; timestamp: number }[]>; // ← NEW
+ }
+
+ No new channel identifier needed — this goes on the existing MainContext.MainThreadClipboard proxy.
+
+ ---
+ Step 3 — Main-process implementation (mainThreadClipboard.ts)
+
+ File: src/vs/workbench/api/browser/mainThreadClipboard.ts
+
+ Keep a ring-buffer of history entries. Hook IClipboardService.onDidWriteText at construction time:
+
+ private readonly _history: { value: string; timestamp: number }[] = [];
+ private static readonly MAX_HISTORY = 50;
+
+ constructor(
+     _context: IExtHostContext,
+     @IClipboardService private readonly _clipboardService: IClipboardService,
+ ) {
+     // existing...
+     this._clipboardService.onDidWriteText?.(text => {
+         this._history.unshift({ value: text, timestamp: Date.now() });
+         if (this._history.length > MainThreadClipboard.MAX_HISTORY) {
+             this._history.pop();
+         }
+     });
+ }
+
+ $readHistory(): Promise<{ value: string; timestamp: number }[]> {
+     return Promise.resolve([...this._history]);
+ }
+
+ ---
+ Step 4 — Extension-host side (extHostClipboard.ts)
+
+ File: src/vs/workbench/api/common/extHostClipboard.ts
+
+ Add getClipboardHistory() method alongside the existing value (the Clipboard object):
+
+ export class ExtHostClipboard {
+     readonly value: vscode.Clipboard;
+     private readonly _proxy: MainThreadClipboardShape;
+
+     constructor(mainContext: IMainContext) {
+         this._proxy = mainContext.getProxy(MainContext.MainThreadClipboard);
+         this.value = Object.freeze({
+             readText: () => this._proxy.$readText(),
+             writeText: (v: string) => this._proxy.$writeText(v),
+         });
+     }
+
+     getHistory(): Promise<readonly vscode.ClipboardHistoryItem[]> {
+         return this._proxy.$readHistory();
+     }
+ }
+
+ ---
+ Step 5 — Wire into vscode namespace (extHost.api.impl.ts)
+
+ File: src/vs/workbench/api/common/extHost.api.impl.ts
+
+ In createApiFactoryAndRegisterActors, find the env namespace builder (around line 418 where clipboard is wired) and add:
+
+ // existing
+ get clipboard(): vscode.Clipboard { return extHostClipboard.value; },
+
+ // NEW
+ getClipboardHistory(): Thenable<readonly vscode.ClipboardHistoryItem[]> {
+     return extHostClipboard.getHistory();
+ },
+
+ ---
+ Step 6 — Add ClipboardHistoryItem to extHostTypes.ts (optional but conventional)
+
+ File: src/vs/workbench/api/common/extHostTypes.ts
+
+ If the type needs a concrete class (for instanceof checks or future properties), add:
+
+ export class ClipboardHistoryItem {
+     constructor(
+     │ Step 6 — Add ClipboardHistoryItem to extHostTypes.ts (optional but conventional)                                                                                                                    │
+     │                                                                                                                                                                                                     │
+     │ File: src/vs/workbench/api/common/extHostTypes.ts                                                                                                                                                   │
+     │                                                                                                                                                                                                     │
+     │ If the type needs a concrete class (for instanceof checks or future properties), add:                                                                                                               │
+     │                                                                                                                                                                                                     │
+     │ export class ClipboardHistoryItem {                                                                                                                                                                 │
+     │     constructor(                                                                                                                                                                                    │
+     │         public readonly value: string,                                                                                                                                                              │
+     │         public readonly timestamp: number,                                                                                                                                                          │
+     │     ) {}                                                                                                                                                                                            │
+     │ }                                                                                                                                                                                                   │
+     │                                                                                                                                                                                                     │
+     │ For now, a plain DTO transferred over IPC is sufficient — skip this if ClipboardHistoryItem remains a pure interface.                                                                               │
+     │                                                                                                                                                                                                     │
+     │ ---                                                                                                                                                                                                 │
+     │ Files to Modify (summary)                                                                                                                                                                           │
+     │                                                                                                                                                                                                     │
+     │ ┌──────────────────────────────────────────────────────────────────────────┬─────────────────────────────────────────────────────────────────┐                                                      │
+     │ │                                   File                                   │                             Change                              │                                                      │
+     │ ├──────────────────────────────────────────────────────────────────────────┼─────────────────────────────────────────────────────────────────┤                                                      │
+     │ │ src/vscode-dts/vscode.d.ts                                               │ Add ClipboardHistoryItem interface + env.getClipboardHistory()  │                                                      │
+     │ ├──────────────────────────────────────────────────────────────────────────┼─────────────────────────────────────────────────────────────────┤                                                      │
+     │ │ src/vs/platform/clipboard/common/clipboardService.ts                     │ Add optional onDidWriteText: Event<string> to IClipboardService │                                                      │
+     │ ├──────────────────────────────────────────────────────────────────────────┼─────────────────────────────────────────────────────────────────┤                                                      │
+     │ │ src/vs/platform/clipboard/browser/clipboardService.ts                    │ Fire onDidWriteText after successful writeText                  │                                                      │
+     │ ├──────────────────────────────────────────────────────────────────────────┼─────────────────────────────────────────────────────────────────┤                                                      │
+     │ │ src/vs/workbench/services/clipboard/electron-browser/clipboardService.ts │ Fire onDidWriteText after successful writeText                  │                                                      │
+     │ ├──────────────────────────────────────────────────────────────────────────┼─────────────────────────────────────────────────────────────────┤                                                      │
+     │ │ src/vs/workbench/api/common/extHost.protocol.ts                          │ Add $readHistory() to MainThreadClipboardShape                  │                                                      │
+     │ ├──────────────────────────────────────────────────────────────────────────┼─────────────────────────────────────────────────────────────────┤                                                      │
+     │ │ src/vs/workbench/api/browser/mainThreadClipboard.ts                      │ Implement ring-buffer + $readHistory()                          │                                                      │
+     │ ├──────────────────────────────────────────────────────────────────────────┼─────────────────────────────────────────────────────────────────┤                                                      │
+     │ │ src/vs/workbench/api/common/extHostClipboard.ts                          │ Add getHistory() method                                         │                                                      │
+     │ ├──────────────────────────────────────────────────────────────────────────┼─────────────────────────────────────────────────────────────────┤                                                      │
+     │ │ src/vs/workbench/api/common/extHost.api.impl.ts                          │ Wire getClipboardHistory into env namespace                     │                                                      │
+     │ └──────────────────────────────────────────────────────────────────────────┴─────────────────────────────────────────────────────────────────┘                                                      │
+     │                                                                                                                                                                                                     │
+     │ ---                                                                                                                                                                                                 │
+     │ Verification                                                                                                                                                                                        │
+     │                                                                                                                                                                                                     │
+     │ 1. Unit test — src/vs/workbench/api/test/browser/extHostClipboard.test.ts: mock MainThreadClipboard, write 3 entries, call getClipboardHistory(), assert order and timestamps.                      │
+     │ 2. Manual smoke test — In a dev build (yarn watch + ./scripts/code.sh), open a simple extension that calls vscode.env.getClipboardHistory() after copying text. Verify the history array contains   │
+     │ the entry.                                                                                                                                                                                          │
+     │ 3. Ring-buffer test — Write 51 entries, confirm only 50 are returned.                                                                                                                               │
+     │ 4. Cross-process test — Write via vscode.env.clipboard.writeText(...) from the ext-host, confirm the main-process ring-buffer captures it (it flows through $writeText →                            │
+     │ MainThreadClipboard.$writeText → IClipboardService.writeText → onDidWriteText event).                                                                                                               │
+     ╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+❯ /cost                                                                                                                                                                                                     
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  Settings  Status   Config   Usage   Stats
+     │                                                                                                                                                                                                     │
+     │ If the type needs a concrete class (for instanceof checks or future properties), add:                                                                                                               │
+     │                                                                                                                                                                                                     │
+     │ export class ClipboardHistoryItem {                                                                                                                                                                 │
+     │     constructor(                                                                                                                                                                                    │
+     │         public readonly value: string,                                                                                                                                                              │
+     │         public readonly timestamp: number,                                                                                                                                                          │
+     │     ) {}                                                                                                                                                                                            │
+     │ }                                                                                                                                                                                                   │
+     │                                                                                                                                                                                                     │
+     │ For now, a plain DTO transferred over IPC is sufficient — skip this if ClipboardHistoryItem remains a pure interface.                                                                               │
+     │                                                                                                                                                                                                     │
+     │ ---                                                                                                                                                                                                 │
+     │ Files to Modify (summary)                                                                                                                                                                           │
+     │                                                                                                                                                                                                     │
+     │ ┌──────────────────────────────────────────────────────────────────────────┬─────────────────────────────────────────────────────────────────┐                                                      │
+     │ │                                   File                                   │                             Change                              │                                                      │
+     │ ├──────────────────────────────────────────────────────────────────────────┼─────────────────────────────────────────────────────────────────┤                                                      │
+     │ │ src/vscode-dts/vscode.d.ts                                               │ Add ClipboardHistoryItem interface + env.getClipboardHistory()  │                                                      │
+     │ ├──────────────────────────────────────────────────────────────────────────┼─────────────────────────────────────────────────────────────────┤                                                      │
+     │ │ src/vs/platform/clipboard/common/clipboardService.ts                     │ Add optional onDidWriteText: Event<string> to IClipboardService │                                                      │
+     │ ├──────────────────────────────────────────────────────────────────────────┼─────────────────────────────────────────────────────────────────┤                                                      │
+     │ │ src/vs/platform/clipboard/browser/clipboardService.ts                    │ Fire onDidWriteText after successful writeText                  │                                                      │
+     │ ├──────────────────────────────────────────────────────────────────────────┼─────────────────────────────────────────────────────────────────┤                                                      │
+     │ │ src/vs/workbench/services/clipboard/electron-browser/clipboardService.ts │ Fire onDidWriteText after successful writeText                  │                                                      │
+     │ ├──────────────────────────────────────────────────────────────────────────┼─────────────────────────────────────────────────────────────────┤                                                      │
+     │ │ src/vs/workbench/api/common/extHost.protocol.ts                          │ Add $readHistory() to MainThreadClipboardShape                  │                                                      │
+     │ ├──────────────────────────────────────────────────────────────────────────┼─────────────────────────────────────────────────────────────────┤                                                      │
+     │ │ src/vs/workbench/api/browser/mainThreadClipboard.ts                      │ Implement ring-buffer + $readHistory()                          │                                                      │
+     │ ├──────────────────────────────────────────────────────────────────────────┼─────────────────────────────────────────────────────────────────┤                                                      │
+     │ │ src/vs/workbench/api/common/extHostClipboard.ts                          │ Add getHistory() method                                         │                                                      │
+     │ ├──────────────────────────────────────────────────────────────────────────┼─────────────────────────────────────────────────────────────────┤                                                      │
+     │ │ src/vs/workbench/api/common/extHost.api.impl.ts                          │ Wire getClipboardHistory into env namespace                     │                                                      │
+     │ └──────────────────────────────────────────────────────────────────────────┴─────────────────────────────────────────────────────────────────┘                                                      │
+     │                                                                                                                                                                                                     │
+     │ ---                                                                                                                                                                                                 │
+     │ Verification                                                                                                                                                                                        │
+     │                                                                                                                                                                                                     │
+     │ 1. Unit test — src/vs/workbench/api/test/browser/extHostClipboard.test.ts: mock MainThreadClipboard, write 3 entries, call getClipboardHistory(), assert order and timestamps.                      │
+     │ 2. Manual smoke test — In a dev build (yarn watch + ./scripts/code.sh), open a simple extension that calls vscode.env.getClipboardHistory() after copying text. Verify the history array contains   │
+     │ the entry.                                                                                                                                                                                          │
+     │ 3. Ring-buffer test — Write 51 entries, confirm only 50 are returned.                                                                                                                               │
+     │ 4. Cross-process test — Write via vscode.env.clipboard.writeText(...) from the ext-host, confirm the main-process ring-buffer captures it (it flows through $writeText →                            │
+     │ MainThreadClipboard.$writeText → IClipboardService.writeText → onDidWriteText event).                                                                                                               │
+     ╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+

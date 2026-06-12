@@ -2,6 +2,18 @@
 
 A scripted demo UI for solutions engineers showing how agent outcomes differ **with** vs **without** Sourcegraph MCP as a context source.
 
+## Access
+
+The demo is protected by a password gate. When you open the app, enter the demo password to continue:
+
+```
+Sourcegr@ph-D3m0
+```
+
+After a successful login, the app stores an auth flag in **`sessionStorage`** (not a cookie). You will not be prompted again while using the same browser tab — including on refresh — but you will need to re-enter the password if you close the tab, open a new tab, or use a private/incognito window.
+
+To override the password at build time, copy `.env.example` to `.env` and set `VITE_DEMO_PASSWORD`.
+
 ## Quick start
 
 ```bash
@@ -28,15 +40,14 @@ For offline demos: `npm run build && npx serve dist`
 
 ## Use cases
 
-| Key | Scenario | Example repo |
-|-----|----------|--------------|
-| 1 | Understanding existing code | microsoft/vscode |
-| 2 | Code reuse & consistency | apache/flink |
-| 3 | Feature development | sourcegraph/sourcegraph |
-| 4 | Bug fixing & tests | grafana/grafana |
-| 5 | Investigating an incident | grafana/grafana |
-| 6 | Security | apache/kafka |
-| 7 | Audit | apache/kafka |
+| Key | Scenario |
+|-----|----------|
+| 1 | **Understanding existing code**<br>• Multi-repo business logic (ADS)<br>• Architecture comprehension |
+| 2 | **Code reuse & consistency**<br>• Tracer injection consistency |
+| 3 | **Feature development**<br>• Clipboard history extension API<br>• Built-in RateLimiter dependency |
+| 4 | **Bug fixing & tests**<br>• DuckLake repeated-INSERT IO error (wasm runtime) |
+| 5 | **Investigating an incident**<br>• V38 fieldConfig migration drop |
+| 6 | **Security**<br>• ACL authorization code audit |
 
 ## Editing scenarios
 
@@ -52,15 +63,12 @@ src/scenarios/
       timeline.ts                     # withoutMCP / withMCP scripted events
       without-mcp.claude.log          # live run log (replace manually)
       with-mcp.claude.log             # live run log (replace manually)
-    acl-bypass-review/
-      ...
 ```
 
 Each scenario `index.ts` only wires sub-scenarios together:
 
 ```ts
 import type { Scenario } from "../../types/scenario";
-import { aclBypassReviewPrompt } from "./acl-bypass-review";
 import { aclCodeAuditPrompt } from "./acl-code-audit";
 
 export const security: Scenario = {
@@ -69,7 +77,7 @@ export const security: Scenario = {
   subtitle: "Authorization risks & vulnerability discovery",
   repo: "apache/kafka",                              // shown as a small mono-font link
   repoUrl: "https://github.com/apache/kafka",        // optional; defaults to github.com/<repo>
-  prompts: [aclBypassReviewPrompt, aclCodeAuditPrompt],
+  prompts: [aclCodeAuditPrompt],
 };
 ```
 
@@ -111,7 +119,7 @@ export const myPrompt: ScenarioPrompt = {
 
 Define the `metrics` constant inline in the prompt's `index.ts` (as shown above). Every field on `ExecutionMetrics` is **optional** — include only what you have real data for; missing metrics are hidden in the UI.
 
-Available fields: `timeSeconds`, `costUsd`, `quality` (0.0–1.0), `toolCalls`. A minimal entry with only `timeSeconds` and `costUsd` is fine (see [`src/scenarios/security/acl-bypass-review/index.ts`](src/scenarios/security/acl-bypass-review/index.ts) for an example).
+Available fields: `timeSeconds`, `costUsd`, `quality` (0.0–1.0), `toolCalls`. A minimal entry with only `timeSeconds` and `costUsd` is fine — omit the other fields when you don't have real data for them.
 
 ### Quality breakdown (optional)
 
@@ -200,6 +208,8 @@ After running the agent for real, drop the raw log text into the matching sub-sc
 
 - `without-mcp.claude.log` — agent run without Sourcegraph MCP
 - `with-mcp.claude.log` — agent run with Sourcegraph MCP
+
+Some prompts bundle trajectory exports instead (e.g. `without-mcp.trajectory.json` / `with-mcp.trajectory.json`). Set `logsFileExtension: "json"` on the prompt so the **Download log** button saves the correct file type.
 
 No upload UI: replace the placeholder files in git. The demo exposes a **Download log** button on each agent column so viewers can save the bundled log as proof of live execution.
 

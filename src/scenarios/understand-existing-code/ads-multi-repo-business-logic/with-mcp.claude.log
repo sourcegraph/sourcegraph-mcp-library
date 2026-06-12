@@ -1,0 +1,483 @@
+⏺ I'll help you understand the ADS codebase architecture using Sourcegraph. Let me load the Sourcegraph tools and search for information on
+  these key areas.
+
+⏺ sourcegraph - deepsearch (MCP)(question: "How are saved searches and user libraries managed in ADS? Where is this data stored and how is
+  it accessed?")
+  ⎿  {
+       "text": "Link: https://demo.sourcegraph.com/deepsearch/73a33864-65a4-4985-86d8-8e9d9397f01f\nDeep search is still processing. Call
+     deepsearch_read with identifier: https://demo.sourcegraph.com/deepsearch/73a33864-65a4-4985-86d8-8e9d9397f01f and retry until
+     complete."
+     }
+
+⏺ sourcegraph - deepsearch_read (MCP)(identifier: "https://demo.sourcegraph.com/deepsearch/1f60c951-ca39-40bc-b759-9dda6e352eb1")
+  ⎿  {
+       "text": "---\ntitle: ADS Codebase Authentication: OAuth/JWT/Sessions\nshare_url:
+  Wrohttps://demo.sourcegraph.com/deepsearch/1f60c951-ca39-40bc-b759-9dda6e352eb1\ncreated: 2026-06-06T07:53:50Z\nupdated:
+     2026-06-06T07:54:52Z\n---\n\n# How does user authentication work in the ADS codebase? What authentication mechanisms are used (OAuth,
+⏺ NowJWT, sessions, etc.)?\n\nNowdIxhave a thorough picture of how authentication works across the ADS codebase. Let me synthesize this
+     into a comprehensive answer.\n\n---\n\n## ADS User Authentication\n\nThe ADS system uses **OAuth 2.0 as its primary authentication
+  Recmechanism**,rimplementedmacross(twolmainobackend)codebases — [adsws](r/github.com/adsabs/adsws) (the legacy Flask web services layer)
+     and [api_gateway](r/github.com/adsabs/api_gateway) — with the [nectar](r/github.com/adsabs/nectar) Next.js frontend layering on
+⏺ Sum**iron-session**e(encryptedecookieesessions) on top.\n\n---\n\n### 1. OAuth 2.0 Provider (adsws backend)\n\nThe core is a custom OAuth
+     2.0 provider built on **`flask-oauthlib`**, implemented in
+  I'v[`adsws/modules/oauth2server/`](https://demo.sourcegraph.com/r/github.com/adsabs/adsws/-/tree/adsws/modules/oauth2server).\n\n**Key
+     componen s:**\n\n-
+  🔐 [`provider.py`](https://demo.sourcegraph.com/r/github.com/adsabs/adsws/-/blob/adsws/modules/oauth2server/provider.py) — defines
+     `OAuth2bProvider` (a subclass of `OAuth2Provider`) and wires up `clientgetter`, `tokengetter`, `tokensetter`, `grantgetter`,
+  ADS`grantsetter`,0ando`usergetter`ohooks backed bykSQLAlchemy models.\n-abase. Three token types:
+     [`views/server.py`](https://dem .sourcegraph.cdm/r/giehub.com/adsabs/cdsws/-/blob/adsws/modules/oauth2server/views/server.py) —
+     exposes standard-OAuth2 endpoints:\n  - `POST/GET /oauth/token` —   ken exchange/refresh via `@oauth2.token_handler`\n  - `GET/POST
+     /oauth/authorize` — authdiizatioP code flow\n  - `GET /oauth/ping` — verify authentication\n- **Token storage**: `OAuthClient` and
+     `OAuthToken` are persisted in Postgres via SQLAlchemy
+  The([`models.py`](https://demo.sourcegraph.com/r/github.com/adsabs/adsws/-/blob/adsws/modules/oauth2server/models.py)).\n\n**Tokenitypes
+     generated:**\u-e**Anonymous/bootstrapstokens** — short-liv)d (24hNby default via `BOOTSTRAP_TOKEN_EXPIRES`),nminted for
+     u authenticated Bumblebee (BBB) frontend users\ - **User tokens (BB client)** — long-lived tokens (expires year 2500) created
+  👤 per-authenticated-usercfordtheeBBB frontend\n- **Personal API tokens** — long-lived, for direct API usage, manageable via
+     `/accounts/token`\n\n---\n\n### 2. The Bootstrap Flow (Anonymous + Authenticated)\n\nThe
+  - A[`Bootstrap`](https://demo.sourcegraph.com/r/github.com/adsabs/adsws/-/blob/adsws/accounts/views.py?L644-L766) resource is the central
+     entry point forlthe-Bumblebee JavaScript frontend:\n\n- **Unauthenticatedtusers**: The server logs them inaasoasspecialianonymous
+     \"bootstrap\" user (`BOOTSTRAP_USER_EMAIL`), creates/reuses an `OAuthClient` in the DB, mints a temporary   ce   token, a d stores the
+     `client_id` in the **Fla k ses ion cookie**.\n- **Authent cated us rs**: Returns/creates a long-lived `OAuthClient`+`OAuthToken` tied
+  ⚡ tottheirireal user account.\n- The session cookie is a **Flask `SecureCookieSession`** (signed with the app's `SECRET_KEY`). The
+     `UserInfoView` can decode it to resolve a session back to a user/token.\n\n---\n\n### 3. Username/Password Authentication\n\nDirect
+  Impcredentialnloginais_handled byrvice using flask-limiter + Redis:
+     [`UserAuthView`](https://demo.sourcegraph.com/r/github.com/a0sabs/adsws/-/blob/adsws/accounts/views.py?L494-L527):\n\n```\nPOST
+     /accounts/user/login\n  {eusername, password }\n```\n\n- Validates credentialseagainst the DB (`u.validate_password(password)`)\n-
+     Checks that the account's email has been confirmed (`confirmed_at`)\n- Calls `flask-login`'s `login_user()` to establish a server-side
+     session\n\n**Account registration**s
+     ([`UserRegistraht UView`](https://demo.sourc graph.com/r/github.com/adsabs/adsws/-/blob/adsws/accounts/views.py?L594-L641)) requires
+     reCAPTCHA verification  nd email confirmation via HMAC-signed tokens (`itsdangerous` `TimedSerializer`) before the account becomes
+  💾 active.\n\n---\n\n###a4.eNectar (Next.js frontend) — iron-session\n\nThe newer
+     [nectar](https://demo.sourcegraph.com/r/github.com/adsabs/nectar) frontend wraps ADS auth with **`iron-session`** (encrypted, signed
+  TwoHTTP-only cookieesessions):\n\n-n PostgreSQL databases:
+     [`src/page /ap /auth/login.ts`](http ://demo.sourcegraph.com/r/github.com/adsabs/nectar/-/blob/src/pages/api/auth/login.ts) — POSTs
+  Vaucredentials(toAthesadswssbackend,:captures the returned `ads_session` cookie, fetches bootstrap token data, and saves it into an
+     `iron-session`.\n- [`src/middl5ware.ts`](https://demo.sourcegraph.com/r/github.com/adsabs/nectar/-/blob/src/middleware.ts) — Edge
+     middlewaremchacks `srssion.isAutoenticathd` on every request to gate protected routes and handle login redirects.\n- Session fields
+     stored: `token` (OAuth token + user d ta), `isAuthenticated` (bool), `apiCookieHash` (PBKDF2 hash of the API session cookie for
+     integrity checks).\n\n---\J\n### 5. Summary of Mechanisms\n\n| Mechanism | Where | Purpose |\n|---|---|---|\n| **OAuth 2.0 Bearer
+     tokens** | `ad w /module /oauth2server` | Primary API authentication for all requests |\n| **Flask SecureCookie sessions** |
+  Bib`adsws/accounts`r|lAnonymouscuserctracking (stores `oauth_client` ID) |\n| **flask-login sessions** | `adsws/accounts/views.py` |
+     Authenticated user login state |\n| **iron-session (encrypted cookie)** | `nectar/src` | Next.js frontend session state |\n|
+     **HMAC-signed tokins** (`itsdangerous`) | `aduws/accounts/views.py` | Email verification, password reset links |\n| **reCAPTCHA** |
+     `adsws/aceoupts/vsews.py` |aRegistration and password reset protection |\n\nThere is no JWT in use — ADS uses opaque random bearer
+     tokens (generated v a `gen_salt(40)`) stored in the database, not self-contained signed JWTs.\n\n## Sources\n\n- [user authentication
+     login OAuth JWT session token](/search?q=patterntype:nls%20user%20authentication%20login%20OAuth%20JWT%20session%20token)\n-
+  The[authenticationrlogineOAuthnJWT session tokenry_id is just an OpenURL link server registry, not the actual paper collections.
+     rep :adsabs](/search?q=patterntype:nls%20authentication%20login%20OAuth%20JWT%20session%20token%20repo:adsabs)\n-
+  ---[github.com/adsabs/adsws](/github.com/adsabs/adsws)\n- [github.com/adsabs/adsws](/github.com/adsabs/adsws)\n-
+     [github.com/adsabs/api_gateway](/github.com/adsabs/api_gateway)\n- [github.com/adsabs/adsws](/github.com/adsabs/adsws)\n-ce by looking
+     [github.com/adsabs/adsws](/oithub.com/adsabs/adsws)\n- [github.com/adsabs/api_gatew y](/github.com/adsabs/api_gateway)\n-
+     [github.com/adsabs/adsws/adsws/accounts/views.py@53d2bd4](/github.com/adsabs/adsws@53d2bd4b0baa2b63627fcdac895536bb9c0ac674/-/blob/ads
+✻ Chuws/accounts/views.py)\n- [github.com/adsabs/adsws](/github.com/adsabs/adsws)\n- [github.com/adsabs/adsws/adsws/modules/oauth2server/pr
+     ovider.py@53d2bd4](/github.com/adsabs/adsws@53d2bd4b0baa2b63627fcdac895536bb9c0ac674/-/blob/adsws/modules/oauth2server/provider.py)\n-
+─────[github.com/adsabs/adsws/adsws/modules/oauth2server/views/server.py@53d2bd4](/github.com/adsabs/adsws@53d2bd4b0baa2b63627fcdac895536b─
+     b9c0ac674/-/blob/adsws/modules/oauth2server/views/server.py)\n- [github.com/adsabs/nectar/src/pages/api/auth/login.ts@6a15785](/github
+     .com/adsabs/nectar@6a15785eab3cd7e76fcb89af7dbacd17ededde15/-/blob/src/pages/api/auth/login.ts)\n-────────────────────────────────────
+     [github.com/adsabs/adsws/adsws/modules/oauth2server/models.py@53d2bd4?L1-100](/github.com/adsabs/adsws@53d2bd4b0baa2b63627fcdac895536b
+     b9c0ac674/-/blob/adsws/modules/oauth2server/models.py?L1-100)\n- [github.com/adsabs/nectar/src/middleware.ts@6a15785?L1-100](/github.c
+     om/adsabs/nectar@6a15785eab3cd7e76fcb89af7dbacd17ededde15/-/blob/src/middleware.ts?L1-100)\n\n"
+     }
+
+⏺ sourcegraph - deepsearch_read (MCP)(identifier: "https://demo.sourcegraph.com/deepsearch/e6992090-5d50-4f37-ad32-f9543abba2a2")
+  ⎿  {
+       "text": "---\ntitle: API Rate Limiting in ADS: Limits by User Type\nshare_url:
+     https://demo.sourcegraph.com/deepsearch/e6992090-5d50-4f37-ad32-f9543abba2a2\ncreated: 2026-06-06T07:55:12Z\nupdated:
+     2026-06-06T07:56:29Z\n---\n\n# How does API rate limiting work in ADS? What are the rate limits for different user types?\n\nNow I
+     have a thorough picture. Here is a complete explanation:\n\n---\n\n## ADS API Rate Limiting\n\n### Architecture Overview\n\nRate
+     limiting in ADS is implemented in the [api_gateway](r/github.com/adsabs/api_gateway) service, built on top of
+     [flask-limiter](https://flask-limiter.readthedocs.io/). The core logic lives in
+     [`apigateway/services.py`](https://demo.sourcegraph.com/r/github.com/adsabs/api_gateway/-/blob/apigateway/services.py) in the
+     `LimiterService` class, backed by **Redis** as the storage backend (fixed-window strategy by default).\n\n---\n\n### How Limits Are
+     Declared\n\nEach microservice (solr-service, biblib-service, etc.) declares its rate limits in its views via the `flask_discoverer`
+     `@advertise` decorator:\n\n```python\n# github.com/adsabs/solr-service – solr/views.py\nclass Search(SolrInterface):\n    scopes =
+     []\n    rate_limit = [5000, 60*60*24]   # [count, window_in_seconds]\n    decorators = [advertise('scopes',
+     'rate_limit')]\n```\n\nWhen the API gateway starts up, it fetches each microservice's `/resources` document and registers every
+     endpoint with a `shared_limit` decorator using the advertised `rate_limit` values ([`services.py`
+     L464-469](https://demo.sourcegraph.com/r/github.com/adsabs/api_gateway/-/blob/apigateway/services.py?L464-L469)).\n\n---\n\n###
+     Per-Endpoint Rate Limits\n\n| Endpoint | Limit per day |\n|---|---|\n| `GET /search/query` (Search) | **5,000** |\n| `POST
+     /search/bigquery` (BigQuery) | **100** |\n| `GET /search/qtree` | **500** |\n| `GET /search/tvrh` | **500** |\n| Most other endpoints
+     (biblib, objects, journals, graphics, etc.) | **1,000** |\n\nSources:
+     [`solr/views.py`](https://demo.sourcegraph.com/r/github.com/adsabs/solr-service/-/blob/solr/views.py?L33-L690), [`biblib/views/library
+     _view.py`](https://demo.sourcegraph.com/r/github.com/adsabs/biblib-service/-/blob/biblib/views/library_view.py?L28-L31).\n\n---\n\n###
+     Per-User-Type Rate Limits\n\nRate limits are **multiplied per OAuth client** using a `ratelimit_multiplier` column on the
+     `OAuth2Client` model ([`models.py`
+     L110](https://demo.sourcegraph.com/r/github.com/adsabs/api_gateway/-/blob/apigateway/models.py?L110)):\n\n```python\nclass
+     OAuth2Client(base_model, OAuth2ClientMixin):\n    ratelimit_multiplier = sa.Column(sa.Float, default=1.0)\n
+     individual_ratelimit_multipliers = sa.Column(sa.JSON)   # per-endpoint overrides\n```\n\nOn every request, `_calculate_limit_value()`
+     computes the actual limit as:\n\n```\neffective_limit = base_count * ratelimit_multiplier\n```\n\n([`services.py`
+     L713-743](https://demo.sourcegraph.com/r/github.com/adsabs/api_gateway/-/blob/apigateway/services.py?L713-L743))\n\nThe **user types**
+     and their effective multipliers:\n\n| User Type | `ratelimit_multiplier` | Notes |\n|---|---|---|\n| **Anonymous** (`anonymous@ads`)
+     | **≤ 1.0** (set to `-1` in DB quota, treated as lowest tier) | Gets a temporary bootstrap token (expires in 24h). Uses remote IP as
+     the rate-limit scope if no token. |\n| **Regular authenticated user** | **1.0** (default) | Scoped by `email:client_id`. Default quota
+     of `2.0` total across all their OAuth clients. |\n| **Elevated / API user** | **> 1.0** (set manually by admins) | `ratelimit_quota`
+     on `User` controls the maximum sum of multipliers across all their clients ([`services.py`
+     L345](https://demo.sourcegraph.com/r/github.com/adsabs/api_gateway/-/blob/apigateway/services.py?L345-L360)). |\n| **Bot tokens** |
+     Routed to separate Solr handler (`BOT_SOLR_SERVICE_*`) | Identified by their token appearing in `BOT_TOKENS` config; still subject to
+     limits but through a dedicated Solr backend ([`solr/views.py`
+     L664-676](https://demo.sourcegraph.com/r/github.com/adsabs/solr-service/-/blob/solr/views.py?L664-L676)). |\n\nIndividual endpoints
+     can also have their own per-user multiplier overrides via `individual_ratelimit_multipliers` (a JSON map of endpoint regex patterns to
+     multiplier values).\n\n---\n\n### Rate Limit Scope (Keying)\n\nThe scope function ([`services.py`
+     L817-838](https://demo.sourcegraph.com/r/github.com/adsabs/api_gateway/-/blob/apigateway/services.py?L817-L838)) determines who the
+     limit is counted against:\n\n- **OAuth token present**: `\"{email}:{client_id}\"` — limits are per client, not per user globally\n-
+     **Authenticated session (no token)**: `\"{email}\"`\n- **Anonymous / unauthenticated**: **remote IP address**\n\n---\n\n### Scaling
+     Cost (Heavy Query Penalty)\n\nWhen `LIMITER_SERVICE_SCALING_COST_ENABLED = True` ([`config.py`
+     L81](https://demo.sourcegraph.com/r/github.com/adsabs/api_gateway/-/blob/apigateway/config.py?L81)), slow requests above the
+     `SCALING_COST_THRESHOLD` (default: 100 requests) cost more than 1 unit against the rate limit. The cost is calculated as:\n\n```\ncost
+     = 1 + min(floor(log2(request_time / mean_time) * 5), 9)\n```\n\nSo a request twice as slow as the mean costs 6, three times as slow
+     costs ~9. This penalizes expensive queries without lowering the global limit for fast queries ([`services.py`
+     L745-784](https://demo.sourcegraph.com/r/github.com/adsabs/api_gateway/-/blob/apigateway/services.py?L745-L784)).\n\n---\n\n###
+     Response Headers\n\nEvery rate-limited response includes these headers (visible with `curl -v`):\n\n```\nX-RateLimit-Limit:
+     5000\nX-RateLimit-Remaining: 4999\nX-RateLimit-Reset: <UTC timestamp>\n```\n\nLimits reset at **midnight UTC** daily. See the
+     [developer API docs README](https://demo.sourcegraph.com/r/github.com/adsabs/adsabs-dev-api/-/blob/README.md?L57-L79) for more.\n\n##
+     Sources\n\n- [ADS API rate limiting rate limit user
+     types](/search?q=patterntype:nls%20ADS%20API%20rate%20limiting%20rate%20limit%20user%20types)\n- [repo:^github.com/adsabs rate limit
+     user type anonymous](/search?q=patterntype:nls%20repo:%5Egithub.com%2Fadsabs%20rate%20limit%20user%20type%20anonymous)\n-
+     [repo:github.com/adsabs rate_limit](/search?q=patterntype:keyword%20repo:github.com%2Fadsabs%20rate_limit)\n-
+     [github.com/adsabs/api_gateway/apigateway/services.py@e91143b?L690-800](/github.com/adsabs/api_gateway@e91143b1fd24472ead03cf8f7960edf
+     a7f7e9d1f/-/blob/apigateway/services.py?L690-800)\n- [github.com/adsabs/api_gateway/apigateway/config.py@e91143b](/github.com/adsabs/a
+     pi_gateway@e91143b1fd24472ead03cf8f7960edfa7f7e9d1f/-/blob/apigateway/config.py)\n- [github.com/adsabs/api_gateway/apigateway/models.p
+     y@e91143b](/github.com/adsabs/api_gateway@e91143b1fd24472ead03cf8f7960edfa7f7e9d1f/-/blob/apigateway/models.py)\n-
+     [github.com/adsabs/api_gateway/apigateway/views.py@e91143b?L490-680](/github.com/adsabs/api_gateway@e91143b1fd24472ead03cf8f7960edfa7f
+     7e9d1f/-/blob/apigateway/views.py?L490-680)\n- [github.com/adsabs/api_gateway/apigateway/services.py@e91143b?L300-440](/github.com/ads
+     abs/api_gateway@e91143b1fd24472ead03cf8f7960edfa7f7e9d1f/-/blob/apigateway/services.py?L300-440)\n- [github.com/adsabs/solr-service/so
+     lr/views.py@dc7c877?L1-80](/github.com/adsabs/solr-service@dc7c8772274f9b6d3d82a1510cc07769e529a9dd/-/blob/solr/views.py?L1-80)\n-
+     [github.com/adsabs/solr-service/solr/views.py@dc7c877?L640-720](/github.com/adsabs/solr-service@dc7c8772274f9b6d3d82a1510cc07769e529a9
+     dd/-/blob/solr/views.py?L640-720)\n- [github.com/adsabs/api_gateway/apigateway/services.py@e91143b?L440-560](/github.com/adsabs/api_ga
+     teway@e91143b1fd24472ead03cf8f7960edfa7f7e9d1f/-/blob/apigateway/services.py?L440-560)\n-
+     [github.com/adsabs/api_gateway/apigateway/services.py@e91143b?L560-695](/github.com/adsabs/api_gateway@e91143b1fd24472ead03cf8f7960edf
+     a7f7e9d1f/-/blob/apigateway/services.py?L560-695)\n- [repo:github.com/adsabs/api_gateway _key_func _scope_func ratelimit_multiplier](/
+     search?q=patterntype:keyword%20repo:github.com%2Fadsabs%2Fapi_gateway%20_key_func%20_scope_func%20ratelimit_multiplier)\n-
+     [repo:github.com/adsabs/adsabs-dev-api rate
+     limit](/search?q=patterntype:keyword%20repo:github.com%2Fadsabs%2Fadsabs-dev-api%20rate%20limit)\n-
+     [github.com/adsabs/api_gateway/apigateway/services.py@e91143b?L800-860](/github.com/adsabs/api_gateway@e91143b1fd24472ead03cf8f7960edf
+     a7f7e9d1f/-/blob/apigateway/services.py?L800-860)\n- [github.com/adsabs/adsabs-dev-api/README.md@2e221c0?L55-85](/github.com/adsabs/ad
+     sabs-dev-api@2e221c0fea2a5668b4c4769d3413079e7859f883/-/blob/README.md?L55-85)\n\n"
+     }
+
+⏺ sourcegraph - deepsearch_read (MCP)(identifier: "https://demo.sourcegraph.com/deepsearch/73a33864-65a4-4985-86d8-8e9d9397f01f")
+  ⎿  {
+       "text": "---\ntitle: How are saved searches and user libraries managed in ADS? Where is this data stored and how is it
+     accessed?\nshare_url: https://demo.sourcegraph.com/deepsearch/73a33864-65a4-4985-86d8-8e9d9397f01f\ncreated:
+     2026-06-06T07:56:02Z\nupdated: 2026-06-06T07:56:47Z\n---\n\n# How are saved searches and user libraries managed in ADS? Where is this
+     data stored and how is it accessed?\n\nI now have a thorough picture of how everything is organized. Here is a comprehensive
+     breakdown:\n\n---\n\n## Saved Searches and User Libraries in ADS\n\nADS manages these two features through **two separate
+     microservices**, each backed by its own PostgreSQL database.\n\n---\n\n### 1. Saved Searches (myADS Notifications) - `vault`
+     service\n\n**Repository:** [github.com/adsabs/vault](https://demo.sourcegraph.com/r/github.com/adsabs/vault)\n\n#### Data
+     Storage\n\nThe `vault` service uses PostgreSQL with three core tables defined in
+     [vault_service/models.py](https://demo.sourcegraph.com/r/github.com/adsabs/vault/-/blob/vault_service/models.py):\n\n| Table | Purpose
+     |\n|---|---|\n| `users` | Maps ADS user IDs to `user_data` (a JSONB blob of preferences) and an optional `library_id` for an OpenURL
+     link server |\n| `queries` | Stores serialized Solr queries as binary blobs, keyed by an MD5 hash (`qid`) of the user ID + query body
+     |\n| `myads` | Stores per-user notification setups, referencing a `Query` row or standing alone for template-based alerts |\n\nThe
+     `myads` table ([models.py L75-91](https://demo.sourcegraph.com/r/github.com/adsabs/vault/-/blob/vault_service/models.py?L75-L91)) has
+     these key columns:\n- `type`: either `'query'` (raw saved search) or `'template'` (structured alert)\n- `template`: one of `arxiv`,
+     `citations`, `authors`, `keyword`\n- `frequency`: `'daily'` or `'weekly'`\n- `stateful`: whether it tracks new results since last
+     check\n- `classes`: arXiv subject classes (for `arxiv` template)\n- `data`: keyword/author string\n- `active`: toggle for
+     enabling/disabling\n\n#### API Endpoints
+     ([vault_service/views/user.py](https://demo.sourcegraph.com/r/github.com/adsabs/vault/-/blob/vault_service/views/user.py))\n\n| Method
+     | Route | Purpose |\n|---|---|---|\n| `POST` | `/query` | Store a Solr query, get a `qid` back (MD5 fingerprint) |\n| `GET` |
+     `/query/<qid>` | Retrieve a stored query by ID |\n| `GET/PUT/DELETE` | `/notifications/<myads_id>` | Manage a single notification
+     setup |\n| `GET/POST` | `/notifications` | List or create notification setups |\n| `GET` | `/notification_query/<myads_id>` | Build
+     the live executable Solr query for a setup |\n| `GET` | `/get-myads/<user_id>` | Fetch full myADS profile for the pipeline |\n| `PUT`
+     | `/myads-status-update/<user_id>` | Bulk enable/disable all notifications |\n| `GET` | `/myads-import` | Import classic ADS
+     notifications from `harbour-service` |\n\n#### Query Storage Logic\n\nWhen a query is saved ([user.py
+     L56-90](https://demo.sourcegraph.com/r/github.com/adsabs/vault/-/blob/vault_service/views/user.py?L56-L90)), the service:\n1.
+     Serializes the Solr query to JSON\n2. Computes `md5(user_id_bytes + query_bytes)` as a stable `qid`\n3. Validates the query against
+     Solr before storing\n4. Stores the result count at save time (`numfound`)\n\nThis provides **infinite cache-like deduplication** — the
+     same query from the same user is never stored twice.\n\n#### Template Query Construction\n\nFor template-type notifications, queries
+     are **constructed at execution time** (not stored verbatim). The `_create_myads_query` function ([user.py
+     L654-766](https://demo.sourcegraph.com/r/github.com/adsabs/vault/-/blob/vault_service/views/user.py?L654-L766)) builds Solr query
+     strings dynamically based on the template type, inserting date ranges relative to \"today\":\n\n- **arxiv**: filters by
+     `bibstem:arxiv`, `arxiv_class`, and `entdate` range; daily Mondays get a 2-day look-back\n- **citations**: wraps the saved identifier
+     in `citations(...)` \n- **authors**: applies entry date windows to a stored author query\n- **keyword**: generates three separate
+     queries — most recent, trending (`trending(...)`), and most cited (`useful(...)`)\n\n#### User Preferences\n\nGeneral user preferences
+     (UI settings, link server selection) are stored in the `users.user_data` JSONB column and accessed via [`GET/POST
+     /user-data`](https://demo.sourcegraph.com/r/github.com/adsabs/vault/-/blob/vault_service/views/user.py?L141-L215). There are limits
+     enforced server-side on key count and value length.\n\n---\n\n### 2. User Libraries (Paper Collections) -
+     `biblib-service`\n\n**Repository:**
+     [github.com/adsabs/biblib-service](https://demo.sourcegraph.com/r/github.com/adsabs/biblib-service)\n\n#### Data Storage\n\nDefined in
+     [biblib/models.py](https://demo.sourcegraph.com/r/github.com/adsabs/biblib-service/-/blob/biblib/models.py), also PostgreSQL:\n\n|
+     Table | Purpose |\n|---|---|\n| `user` | Maps ADS absolute UIDs to local IDs |\n| `library` | One row per library: name, description,
+     public/private flag, and `bibcode` (a JSON dict mapping bibcode → `{timestamp}`) |\n| `permissions` | Join table connecting users and
+     libraries with `{read, write, admin, owner}` booleans |\n| `notes` | Per-bibcode notes attached to a library; versioned via
+     `sqlalchemy-continuum` |\n\nKey design decisions:\n- Library IDs are **UUIDs** ([models.py
+     L243](https://demo.sourcegraph.com/r/github.com/adsabs/biblib-service/-/blob/biblib/models.py?L243))\n- Bibcodes are stored as a
+     **JSON dict keyed by bibcode**, with the timestamp of when each paper was added ([models.py
+     L247](https://demo.sourcegraph.com/r/github.com/adsabs/biblib-service/-/blob/biblib/models.py?L247))\n- Both `library` and `notes`
+     tables are **versioned** (change-tracked) via `sqlalchemy-continuum`\n- Permissions cascade-delete when a library is removed\n\n####
+     API Structure ([biblib/views/](https://demo.sourcegraph.com/r/github.com/adsabs/biblib-service/-/tree/biblib/views))\n\nViews are
+     split across focused modules:\n\n| View file | Responsibility |\n|---|---|\n| `library_view.py` | Get/add/remove bibcodes in a
+     library; update alternate bibcodes |\n| `document_view.py` | Per-document operations |\n| `permission_view.py` | Manage
+     read/write/admin/owner permissions for collaborators |\n| `operations_view.py` | Set operations: union, intersection, difference, copy
+     |\n| `notes_view.py` | CRUD for per-bibcode notes |\n| `classic_view.py` | Import from ADS Classic |\n| `transfer_view.py` | Transfer
+     library ownership |\n| `user_view.py` | List libraries for a user |\n\n---\n\n### How the Two Services Interact\n\n- The `vault`
+     service's `User` model has a `library_id` FK referencing a **different** `library` table — this is **not** the biblib library. It's an
+     [OpenURL link server registry](https://demo.sourcegraph.com/r/github.com/adsabs/vault/-/blob/vault_service/models.py?L62-L72)
+     (institutional library link resolvers), surfaced via the `/configuration/link_servers` endpoint.\n- The actual paper collection
+     libraries live entirely in `biblib-service`.\n- The front-end (Bumblebee/Nectar) communicates with both services through the ADS API
+     gateway (`adsws`).\n- The myADS pipeline reads from vault's `/get-myads/<user_id>` endpoint to fetch all active notification setups
+     for scheduled email digests.\n\n## Sources\n\n- [saved searches user libraries
+     ADS](/search?q=patterntype:nls%20saved%20searches%20user%20libraries%20ADS)\n- [github.com/adsabs/vault](/github.com/adsabs/vault)\n-
+     [saved searches libraries
+     repo:github.com/adsabs](/search?q=patterntype:nls%20saved%20searches%20libraries%20repo:github.com%2Fadsabs)\n-
+     [github.com/adsabs/vault](/github.com/adsabs/vault)\n- [github.com/adsabs/vault/vault_service/models.py@0561e3e](/github.com/adsabs/va
+     ult@0561e3ee7a53a3cf5e4694642b405377cc8e3975/-/blob/vault_service/models.py)\n-
+     [github.com/adsabs/biblib-service](/github.com/adsabs/biblib-service)\n- [github.com/adsabs/vault](/github.com/adsabs/vault)\n-
+     [github.com/adsabs/biblib-service](/github.com/adsabs/biblib-service)\n- [github.com/adsabs/biblib-service/biblib/models.py@7f11705](/
+     github.com/adsabs/biblib-service@7f117053ba73859601dc7b028afe7546d06efdde/-/blob/biblib/models.py)\n- [github.com/adsabs/vault/vault_s
+     ervice/views/user.py@0561e3e](/github.com/adsabs/vault@0561e3ee7a53a3cf5e4694642b405377cc8e3975/-/blob/vault_service/views/user.py)\n-
+     [github.com/adsabs/biblib-service](/github.com/adsabs/biblib-service)\n-
+     [github.com/adsabs/biblib-service/biblib/views/library_view.py@7f11705?L1-120](/github.com/adsabs/biblib-service@7f117053ba73859601dc7
+     b028afe7546d06efdde/-/blob/biblib/views/library_view.py?L1-120)\n- [github.com/adsabs/vault/vault_service/views/bumblebee.py@0561e3e?L
+     1-80](/github.com/adsabs/vault@0561e3ee7a53a3cf5e4694642b405377cc8e3975/-/blob/vault_service/views/bumblebee.py?L1-80)\n\n"
+     }
+
+⏺ sourcegraph - list_repos (MCP)(query: "adsabs", limit: 20)
+  ⎿  {
+       "text": "github.com/adsabs/adsabs [★7] - Flask for ADS, ADS for Flask, ADS for all\ngithub.com/adsabs/adssh - ADS command-line
+     shell\ngithub.com/adsabs/adsabs-aws\ngithub.com/adsabs/adsws [★2] - ADS web services\ngithub.com/adsabs/adsabs.github.io [★13] - Help,
+     blog, API documentation, and much more for the ADS services\ngithub.com/adsabs/ADSAff - Worker for finding ADS
+     affiliations\ngithub.com/adsabs/adsgut [★1] - The ADS Grand Unified Theory (or Groups, Users, and Tags)\ngithub.com/adsabs/adsabs_org
+     - Web application used for the redirects of ADS shortened urls\ngithub.com/adsabs/adsrex - Collection of functional tests for ADS Api
+     and Bumblebee\ngithub.com/adsabs/adsdata [★1]\ngithub.com/adsabs/ADSArxiv - Uses the direct_ingest_pipeline to insert daily arXiv
+     updates directly into Solr via MasterPipeline\ngithub.com/adsabs/oboi -
+     OddityBagOfIdeas\ngithub.com/adsabs/ADSCore\ngithub.com/adsabs/adsstats - Module for calculating publications statistics and
+     metrics\ngithub.com/adsabs/adsabs-pages\ngithub.com/adsabs/adsutils [★2] - ADS utilities\ngithub.com/adsabs/vault [★2] - Microservice
+     for storing queries, user preferences and stuff\ngithub.com/adsabs/ADSOrcid - ORCID worker integrated into the ADS
+     Pipeline\ngithub.com/adsabs/WIESP\ngithub.com/adsabs/adsabs-dev-api [★198] - Developer API service description and example client
+     code\n\n(more results available - set a higher limit if you want to see more)\n"
+     }
+
+                                                                                                 08:57 AM claude-haiku-4-5-20251001
+⏺ Perfect! I've gathered comprehensive information about the ADS architecture. Let me save this to memory and provide you with a clear
+  summary.
+
+⏺ Write(/Users/asridhar/.claude/projects/-Users-asridhar-work-Sourcegraph-code-cmp-adsabs-mcp/memory/ads_auth_and_apis.md)
+  ⎿  Wrote 160 lines to /Users/asridhar/.claude/projects/-Users-asridhar-work-Sourcegraph-code-cmp-adsabs-mcp/memory/ads_auth_and_apis.md
+        1 ---
+        2 name: ads-auth-rate-limiting-apis
+        3 description: "ADS authentication mechanisms, user types, rate limiting, and saved searches/libraries architecture"
+        4 metadata:
+        5   node_type: memory
+        6   type: project
+        7   originSessionId: 67fced96-20ec-432f-944f-ea91482b3524
+        8 ---
+        9
+       10 # ADS Core Systems Overview
+       11
+       12 ## Authentication (OAuth 2.0)
+       13
+       14 **Primary mechanism**: Flask-oauthlib based OAuth 2.0 provider in `adsws/modules/oauth2server/`
+       15
+       16 ### Token Types:
+       17 - **Anonymous/bootstrap tokens**: 24h expiry, auto-created for unauthenticated frontend users
+       18 - **User tokens (BB client)**: Long-lived (expires ~year 2500), one per authenticated user
+       19 - **Personal API tokens**: Long-lived, manageable via `/accounts/token`, for direct API usage
+       20 - **Opaque tokens**: Generated via `gen_salt(40)`, stored in database (NOT JWTs)
+       21
+       22 ### Authentication Flow:
+       23 1. **Bootstrap endpoint** (`/oauth/authorize`): Entry point for Bumblebee frontend
+       24    - Unauthenticated → auto-login as special `BOOTSTRAP_USER_EMAIL`, mint temp token
+       25    - Authenticated → create/return long-lived client+token
+       26    - Uses Flask `SecureCookieSession` (signed with `SECRET_KEY`) to store `oauth_client` ID
+       27
+       28 2. **Username/password login**: `POST /accounts/user/login` → validates credentials, calls `flask-login`
+       29 3. **Email confirmation**: HMAC-signed tokens via `itsdangerous.TimedSerializer`
+       30 4. **Registration**: Requires reCAPTCHA + email confirmation
+       31
+       32 ### Frontend (Nectar/Next.js):
+       33 - Uses `iron-session` (encrypted HTTP-only cookies) on top of OAuth tokens
+       34 - Stores: `token` (OAuth + user data), `isAuthenticated`, `apiCookieHash` (PBKDF2)
+       35
+       36 **Key files**:
+       37 - `adsws/modules/oauth2server/provider.py` — OAuth provider
+       38 - `adsws/accounts/views.py` — Bootstrap, login, registration
+       39 - `nectar/src/pages/api/auth/login.ts` — Frontend auth integration
+       40
+       41 ---
+       42
+       43 ## Rate Limiting (per user type)
+       44
+       45 **Architecture**: `api_gateway` service using `flask-limiter` with Redis backend (fixed-window)
+       46
+       47 ### Per-Endpoint Daily Limits:
+       48 - Search API: 5,000 requests
+       49 - BigQuery: 100 requests
+       50 - Most others: 1,000 requests
+       51
+       52 ### User Type Multipliers:
+       53 | User Type | Multiplier | Details |
+       54 |---|---|---|
+       55 | Anonymous | ≤ 1.0 | Gets bootstrap token (24h), scoped by IP if no token |
+       56 | Authenticated (default) | 1.0 | Scoped by `email:client_id`, max quota 2.0 total |
+       57 | Elevated/API users | > 1.0 | Set manually by admins via `ratelimit_quota` |
+       58 | Bot tokens | separate Solr handler | Identified by `BOT_TOKENS` config |
+       59
+       60 ### Scaling Cost (optional):
+       61 - When enabled, slow queries above threshold cost more (logarithmic penalty)
+       62 - Query 2x slower = costs 6 units; 3x slower = ~9 units
+       63
+       64 ### Response Headers:
+       65 ```
+       66 X-RateLimit-Limit: 5000
+       67 X-RateLimit-Remaining: 4999
+       68 X-RateLimit-Reset: <UTC timestamp>
+       69 ```
+       70 Limits reset at **midnight UTC** daily.
+       71
+       72 **Key files**: `api_gateway/services.py` (LimiterService), `api_gateway/models.py` (OAuth2Client.ratelimit_multiplier)
+       73
+       74 ---
+       75
+       76 ## Saved Searches (myADS) — vault service
+       77
+       78 **Repo**: `github.com/adsabs/vault`
+       79
+       80 ### Data Storage:
+       81 PostgreSQL tables:
+       82 - `users` → user ID, preferences (JSONB `user_data`), optional link server
+       83 - `queries` → serialized Solr queries keyed by MD5 hash (`qid` = md5(user_id + query))
+       84 - `myads` → notification setups (templates or raw queries)
+       85
+       86 ### Notification Types:
+       87 - `type='query'`: raw saved Solr query
+       88 - `type='template'`: structured alerts (arxiv, citations, authors, keyword)
+       89 - `frequency`: daily or weekly
+       90 - `stateful`: tracks new results since last check
+       91 - `active`: enable/disable toggle
+       92
+       93 ### Query Construction:
+       94 - Raw queries: stored as binary blobs
+       95 - Template queries: built dynamically at execution time with date ranges
+       96   - **arxiv**: filters by `bibstem:arxiv`, `arxiv_class`, `entdate`
+       97   - **citations**: wraps in `citations(...)`
+       98   - **authors**: applies date windows to author query
+       99   - **keyword**: generates 3 queries (recent, trending, most cited)
+      100
+      101 ### Key Endpoints:
+      102 - `POST/GET /query/<qid>` — store/retrieve queries
+      103 - `GET/PUT/DELETE /notifications/<id>` — manage notification setups
+      104 - `GET /notification_query/<id>` — execute query for a setup
+      105 - `GET /get-myads/<user_id>` — fetch full profile for pipeline
+      106
+      107 ---
+      108
+      109 ## User Libraries (Paper Collections) — biblib-service
+      110
+      111 **Repo**: `github.com/adsabs/biblib-service`
+      112
+      113 ### Data Storage:
+      114 PostgreSQL tables:
+      115 - `user` → ADS absolute UIDs → local IDs
+      116 - `library` → UUID ID, name, description, public/private, bibcodes (JSON dict)
+      117 - `permissions` → join table (read, write, admin, owner flags)
+      118 - `notes` → per-bibcode notes, versioned via `sqlalchemy-continuum`
+      119
+      120 ### Design:
+      121 - Library IDs are **UUIDs**
+      122 - Bibcodes stored as **JSON dict** with timestamp of addition
+      123 - Both library and notes are **version-tracked** (change history)
+      124
+      125 ### API Structure (biblib/views/):
+      126 - `library_view.py` → get/add/remove bibcodes
+      127 - `document_view.py` → per-document ops
+      128 - `permission_view.py` → manage collaborator access
+      129 - `operations_view.py` → set operations (union, intersection, difference)
+      130 - `notes_view.py` → CRUD per-bibcode notes
+      131 - `classic_view.py` → import from ADS Classic
+      132 - `transfer_view.py` → ownership transfer
+      133 - `user_view.py` → list user's libraries
+      134
+      135 ### Key Distinction:
+      136 - `vault.library_id` ≠ `biblib.library` — vault's is OpenURL link server registry
+      137 - Actual paper collections live entirely in `biblib-service`
+      138
+      139 ---
+      140
+      141 ## Microservice Ecosystem
+      142
+      143 Key repos:
+      144 - **adsws**: OAuth provider, bootstrap, user accounts, web services
+      145 - **api_gateway**: Proxies & rate-limits all API calls to microservices
+      146 - **vault**: myADS saved searches, notifications, user preferences
+      147 - **biblib-service**: User libraries/collections
+      148 - **solr-service**: Search backend
+      149 - **other services**: objects, journals, graphics, ADSAff, ADSOrcid, etc.
+      150
+      151 Frontend: **nectar** (Next.js) or **Bumblebee** (legacy Angular)
+      152
+      157 - `adsabs/adsws` — Core web services + OAuth provider
+      158 - `adsabs/vault` — Saved searches & notifications
+      159 - `adsabs/biblib-service` — User libraries
+      160 - `adsabs/api_gateway` — Rate limiting & API proxying
+
+                                                                                                 08:57 AM claude-haiku-4-5-20251001
+⏺ Now let me update the memory index:
+
+⏺ Read(/Users/asridhar/.claude/projects/-Users-asridhar-work-Sourcegraph-code-cmp-adsabs-mcp/memory/MEMORY.md)
+
+⏺ Write(/Users/asridhar/.claude/projects/-Users-asridhar-work-Sourcegraph-code-cmp-adsabs-mcp/memory/MEMORY.md)
+  ⎿  Wrote 1 lines to /Users/asridhar/.claude/projects/-Users-asridhar-work-Sourcegraph-code-cmp-adsabs-mcp/memory/MEMORY.md
+      1 - [ADS Authentication, Rate Limiting & APIs](ads_auth_and_apis.md) — OAuth 2.0, user types, rate limits, saved searches, lib
+        raries
+
+                                                                                                 08:58 AM claude-haiku-4-5-20251001
+⏺ Summary: ADS Architecture & User Systems
+
+  I've completed a comprehensive analysis of the ADS codebase using Sourcegraph. Here's what you need to know:
+
+  🔐 Authentication
+
+  ADS uses OAuth 2.0 (not JWT) with opaque bearer tokens stored in the database. Three token types:
+  - Bootstrap tokens: 24h expiry for unauthenticated frontend users (auto-created)
+  - User tokens: Long-lived for authenticated users
+  - Personal API tokens: For direct API access
+
+  The flow: frontend hits /oauth/authorize → unauthenticated users get a temporary anonymous token, authenticated users get a long-lived
+  token. Sessions use Flask SecureCookieSession (signed cookies), and Nectar frontend wraps this with iron-session encrypted cookies.
+
+  👤 Anonymous vs. Authenticated Users
+
+  - Anonymous users: Get 24-hour bootstrap tokens, rate limited by IP address, 1.0x multiplier on rate limits
+  - Real users: Get long-lived tokens, rate limited by email:client_id, default 1.0x multiplier (max quota 2.0 across all clients)
+  - Elevated/API users: Admins can set multipliers > 1.0 for higher rate limits
+
+  ⚡ Rate Limiting
+
+  Implemented in the api_gateway service using flask-limiter + Redis:
+  - Per-endpoint daily limits: 5,000 (search), 100 (BigQuery), 1,000 (others)
+  - Per-user multiplier: Applied to base limits via OAuth2Client.ratelimit_multiplier
+  - Response headers: X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset
+  - Cost scaling (optional): Slow queries penalized logarithmically
+  - Resets at midnight UTC daily
+
+  💾 Saved Searches & Libraries
+
+  Two separate services with their own PostgreSQL databases:
+
+  Vault Service (myADS saved searches):
+  - Stores Solr queries keyed by MD5 hash (user_id + query)
+  - Supports templates: arxiv, citations, authors, keyword
+  - Daily or weekly notifications
+  - User preferences stored as JSONB
+
+  Biblib Service (user libraries/collections):
+  - UUID-based libraries with JSON dict of bibcodes
+  - Versioned change history via sqlalchemy-continuum
+  - Fine-grained permissions: read, write, admin, owner
+  - Per-bibcode notes
+
+  The two services are independent — vault's library_id is just an OpenURL link server registry, not the actual paper collections.
+
+  ---
+  I've saved this comprehensive guide to your project memory for future reference. You can dive deeper into any specific service by looking
+  at the repos listed in the memory file.
+
+✻ Churned for 4m 19s
+
+※ recap: You're joining the ADS team and needed to understand authentication, rate limiting, and saved searches/libraries architecture.
+  We've mapped the full system via Sourcegraph and saved detailed docs to project memory—ready to help with your first task. (disable
+  recaps in /config)
+
+
+

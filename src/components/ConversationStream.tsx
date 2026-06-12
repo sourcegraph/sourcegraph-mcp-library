@@ -33,7 +33,8 @@ function ConversationStreamImpl({ events }: ConversationStreamProps) {
     return () => observer.disconnect();
   }, []);
 
-  const isEmpty = events.length === 0;
+  const visibleEvents = events.filter((event) => event.type !== "user");
+  const isEmpty = visibleEvents.length === 0;
 
   return (
     <div
@@ -41,16 +42,12 @@ function ConversationStreamImpl({ events }: ConversationStreamProps) {
       ref={containerRef}
       aria-live="polite"
     >
-      {isEmpty && <p>Waiting for prompt…</p>}
-      {events.map((event) => {
-        if (event.type === "user") {
-          return (
-            <div key={event.id} className="conversation-item conversation-item--user">
-              <p className="conversation-item__text">{event.text}</p>
-            </div>
-          );
-        }
-
+      {isEmpty && (
+        <p className="conversation-stream__idle-hint">
+          Press <kbd>space</kbd> to begin
+        </p>
+      )}
+      {visibleEvents.map((event) => {
         if (event.type === "assistant") {
           return (
             <div
