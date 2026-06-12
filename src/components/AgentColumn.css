@@ -83,12 +83,25 @@
   color: var(--text-primary);
 }
 
+.agent-column__repos {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+
+.agent-column__repos .agent-column__repo {
+  margin: 0;
+}
+
 .agent-column__repo {
   display: inline-block;
   margin-top: 8px;
+  margin-bottom: 8px;
   font-size: var(--font-size-sm);
   font-family: var(--font-mono);
   color: var(--text-muted);
+  width: fit-content;
 }
 
 .agent-column__repo:hover {

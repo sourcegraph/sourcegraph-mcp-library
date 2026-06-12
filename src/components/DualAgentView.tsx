@@ -5,6 +5,7 @@ import {
   formatDuration,
   formatQuality,
   savingsPercent,
+  validateScenarioPromptRepo,
 } from "../types/scenario";
 import { AgentColumn } from "./AgentColumn";
 import { DemoTabs } from "./DemoTabs";
@@ -49,6 +50,11 @@ export function DualAgentView({
 
   const withoutMetrics = activePrompt?.metrics.withoutMCP;
   const withMetrics = activePrompt?.metrics.withMCP;
+
+  const repoData = activePrompt ? validateScenarioPromptRepo(activePrompt, scenario) : null;
+  const repo = repoData?.repo;
+  const repoUrl = repoData?.repoUrl;
+  const repos = activePrompt?.repos ?? scenario?.repos;
 
   const bothCompleted = withoutState.completed && withState.completed;
 
@@ -162,8 +168,9 @@ export function DualAgentView({
             completed: withoutState.completed && withState.completed,
           }}
           metrics={activePrompt?.metrics.withoutMCP ?? {}}
-          repo={activePrompt?.repo ?? scenario?.repo}
-          repoUrl={activePrompt?.repoUrl ?? scenario?.repoUrl}
+          repo={repo}
+          repoUrl={repoUrl}
+          repos={repos}
           scenarioId={scenario?.id}
           promptId={activePrompt?.id}
           logContent={activePrompt?.logs.withoutMCP}
@@ -177,8 +184,9 @@ export function DualAgentView({
             completed: withoutState.completed && withState.completed,
           }}
           metrics={activePrompt?.metrics.withMCP ?? {}}
-          repo={activePrompt?.repo ?? scenario?.repo}
-          repoUrl={activePrompt?.repoUrl ?? scenario?.repoUrl}
+          repo={repo}
+          repoUrl={repoUrl}
+          repos={repos}
           scenarioId={scenario?.id}
           promptId={activePrompt?.id}
           logContent={activePrompt?.logs.withMCP}

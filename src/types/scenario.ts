@@ -62,6 +62,11 @@ export interface QualityBreakdownRow {
   notes?: string;
 }
 
+export interface Repo {
+  name: string;
+  url: string;
+}
+
 export interface ScenarioPrompt {
   id: string;
   /** Short label for the demo picker in the sidebar */
@@ -71,6 +76,7 @@ export interface ScenarioPrompt {
   environment?: RepoEnvironment;
   repo?: string;
   repoUrl?: string;
+  repos?: Repo[];
   metrics: PromptMetrics;
   withoutMCP: TimelineEvent[];
   withMCP: TimelineEvent[];
@@ -88,6 +94,7 @@ export interface Scenario {
   subtitle: string;
   repo?: string;
   repoUrl?: string;
+  repos?: Repo[];
   prompts: ScenarioPrompt[];
 }
 
@@ -146,4 +153,20 @@ export function formatToolCalls(n: number): string {
 export function savingsPercent(before: number, after: number): number {
   if (before <= 0) return 0;
   return Math.round(((before - after) / before) * 100);
+}
+
+export function validateScenarioPromptRepo(
+  prompt: ScenarioPrompt | null,
+  scenario: Scenario | null,
+): { repo: string; repoUrl: string } {
+  const repo = prompt?.repo ?? scenario?.repo;
+  const repoUrl = prompt?.repoUrl ?? scenario?.repoUrl;
+
+  if (!repo || !repoUrl) {
+    throw new Error(
+      `Please add in the appropriate repos for scenario prompt "${prompt?.id || "unknown"}". Both repo and repoUrl are required.`,
+    );
+  }
+
+  return { repo, repoUrl };
 }

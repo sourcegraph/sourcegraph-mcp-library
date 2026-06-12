@@ -12,6 +12,10 @@ export const grpcTimeoutCrossRepoPrompt: ScenarioPrompt = {
   id: "grpc-timeout-cross-repo",
   label: "Cross-repo protocol comparison",
   environment: "multi-repo",
+  repos: [
+    { name: "grpc/grpc-go", url: "https://github.com/grpc/grpc-go" },
+    { name: "connectrpc/connect-go", url: "https://github.com/connectrpc/connect-go" },
+  ],
   text: "Trace how an RPC timeout propagates from a Go caller to the server in both grpc-go and connect-go: where does the client encode the context deadline onto the wire, how does the server parse and enforce it, and what is the key architectural difference in how the two libraries own protocol-specific timeout encoding?",
   metrics,
   withoutMCP,
