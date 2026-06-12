@@ -160,11 +160,16 @@ export function savingsPercent(before: number, after: number): number {
 export function validateScenarioPromptRepo(
   prompt: ScenarioPrompt | null,
   scenario: Scenario | null,
-): { repo: string; repoUrl: string } {
+): { repo?: string; repoUrl?: string } {
   const repo = prompt?.repo ?? scenario?.repo;
   const repoUrl = prompt?.repoUrl ?? scenario?.repoUrl;
 
-  if (!repo || !repoUrl) {
+  // Multi-repo scenarios describe their repos via the `repos` array instead of
+  // the singular `repo`/`repoUrl` fields, so only those need validating here.
+  const repos = prompt?.repos ?? scenario?.repos;
+  const hasRepos = repos !== undefined && repos.length > 0;
+
+  if (!hasRepos && (!repo || !repoUrl)) {
     throw new Error(
       `Please add in the appropriate repos for scenario prompt "${prompt?.id || "unknown"}". Both repo and repoUrl are required.`,
     );
