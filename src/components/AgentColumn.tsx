@@ -12,6 +12,7 @@ interface AgentColumnProps {
   metrics: ExecutionMetrics;
   repo?: string;
   repoUrl?: string;
+  repos?: Array<{ name: string; url: string }>;
   scenarioId?: string;
   promptId?: string;
   logContent?: string;
@@ -25,6 +26,7 @@ function AgentColumnImpl({
   metrics,
   repo,
   repoUrl,
+  repos,
   scenarioId,
   promptId,
   logContent,
@@ -64,7 +66,21 @@ function AgentColumnImpl({
             </button>
           )}
         </div>
-        {repo && (
+        {repos && repos.length > 0 ? (
+          <div className="agent-column__repos">
+            {repos.map((r) => (
+              <a
+                key={r.name}
+                className="agent-column__repo"
+                href={r.url}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {r.name}
+              </a>
+            ))}
+          </div>
+        ) : repo ? (
           <a
             className="agent-column__repo"
             href={repoUrl ?? `https://github.com/${repo}`}
@@ -73,7 +89,7 @@ function AgentColumnImpl({
           >
             {repo}
           </a>
-        )}
+        ) : null}
       </div>
 
       <ExecutionMetricsBar
