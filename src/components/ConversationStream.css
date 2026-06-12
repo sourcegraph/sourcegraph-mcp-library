@@ -13,6 +13,19 @@
   font-size: var(--font-size-md);
 }
 
+.conversation-stream__idle-hint {
+  margin: 0;
+}
+
+.conversation-stream__idle-hint kbd {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--border-default);
+  background: var(--bg-inset);
+}
+
 .conversation-item {
   padding: 12px 16px;
   animation: fadeSlideIn 250ms ease;

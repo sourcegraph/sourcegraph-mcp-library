@@ -25,7 +25,8 @@ export default function App() {
     return getScenarioPrompt(scenario, activePromptId) ?? null;
   }, [scenario, activePromptId]);
 
-  const { withoutState, withState, replay } = useScenarioPlayer(activePrompt);
+  const { withoutState, withState, replay, togglePlayPause } =
+    useScenarioPlayer(activePrompt);
 
   const handleSelectScenario = useCallback((id: string) => {
     const next = getScenarioById(id);
@@ -63,6 +64,11 @@ export default function App() {
       ) {
         return;
       }
+      if (e.key === " " || e.code === "Space") {
+        e.preventDefault();
+        togglePlayPause();
+        return;
+      }
       const num = parseInt(e.key, 10);
       if (num >= 1 && num <= scenarios.length) {
         const next = scenarios[num - 1];
@@ -76,7 +82,7 @@ export default function App() {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [activeId, replay]);
+  }, [activeId, replay, togglePlayPause]);
 
   return (
     <div className="app">

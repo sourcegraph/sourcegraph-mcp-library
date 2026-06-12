@@ -14,6 +14,17 @@ import {
 } from "../utils/playbackTiming";
 import { validateScenario } from "../utils/validateScenario";
 
+type PlaybackStatus = "idle" | "playing" | "paused" | "finished";
+
+type PlaybackConfig = {
+  withoutEvents: TimelineEvent[];
+  withEvents: TimelineEvent[];
+  withoutEnd: number;
+  withEnd: number;
+  totalDuration: number;
+  reducedMotion: boolean;
+};
+
 function eventRenderEnd(event: TimelineEvent): number {
   const streamMs =
     event.type === "assistant" && event.stream
@@ -66,16 +77,6 @@ function applyEvent(state: ColumnState, event: TimelineEvent): ColumnState {
       break;
     }
     case "tool": {
-      // When the same tool call transitions running → done, reuse the
-      // existing React key so the card updates in place instead of
-      // remounting (which would reset expanded/copied state and replay
-      // the entry animation).
-      //
-      // Matching strategy, in order:
-      //   1. Explicit `id` on the timeline event (most robust — survives
-      //      `args` being shortened on the `done` event).
-      //   2. Same `name + args` AND existing status is still "running"
-      //      (so the same tool fired twice doesn't stomp on the first).
       const existing = next.events.findIndex((e) => {
         if (e.type !== "tool") return false;
         if (event.id && e.id === toolCardId(event)) return true;
@@ -124,8 +125,9 @@ function streamAssistantText(
   messageId: string,
   fullText: string,
   chunkMs: number,
+  startIndex = 0,
 ) {
-  let index = 0;
+  let index = startIndex;
   const interval = setInterval(() => {
     index += STREAM_CHARS_PER_TICK;
     const partial = fullText.slice(0, index);
@@ -152,16 +154,49 @@ function streamAssistantText(
   return interval;
 }
 
+function buildPlaybackConfig(prompt: ScenarioPrompt): PlaybackConfig {
+  const reducedMotion = window.matchMedia(
+    "(prefers-reduced-motion: reduce)",
+  ).matches;
+  const naturalEnd = (events: TimelineEvent[]) =>
+    reducedMotion
+      ? events.reduce(
+          (m, e) => (e.type === "complete" ? m : Math.max(m, e.at)),
+          0,
+        )
+      : getContentEndTime(events);
+  const withoutEnd = naturalEnd(prompt.withoutMCP) + COMPLETE_BUFFER_MS;
+  const withEnd = naturalEnd(prompt.withMCP) + COMPLETE_BUFFER_MS;
+  const totalDuration = Math.max(withoutEnd, withEnd) + PLAYBACK_TAIL_MS;
+
+  return {
+    withoutEvents: prompt.withoutMCP,
+    withEvents: prompt.withMCP,
+    withoutEnd,
+    withEnd,
+    totalDuration,
+    reducedMotion,
+  };
+}
+
 export function useScenarioPlayer(prompt: ScenarioPrompt | null) {
   const [withoutState, setWithoutState] = useState<ColumnState>(
     emptyColumnState,
   );
   const [withState, setWithState] = useState<ColumnState>(emptyColumnState);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [playbackStatus, setPlaybackStatus] =
+    useState<PlaybackStatus>("idle");
   const [playKey, setPlayKey] = useState(0);
 
+  const configRef = useRef<PlaybackConfig | null>(null);
+  const elapsedRef = useRef(0);
+  const withoutStateRef = useRef(withoutState);
+  const withStateRef = useRef(withState);
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const intervalsRef = useRef<ReturnType<typeof setInterval>[]>([]);
+
+  withoutStateRef.current = withoutState;
+  withStateRef.current = withState;
 
   const clearAll = useCallback(() => {
     timersRef.current.forEach(clearTimeout);
@@ -170,12 +205,172 @@ export function useScenarioPlayer(prompt: ScenarioPrompt | null) {
     intervalsRef.current = [];
   }, []);
 
+  const fireEvent = useCallback(
+    (
+      event: TimelineEvent,
+      setState: React.Dispatch<React.SetStateAction<ColumnState>>,
+      reducedMotion: boolean,
+    ) => {
+      if (event.type === "assistant" && event.stream && !reducedMotion) {
+        const messageId = `asst-${event.at}`;
+        setState((prev) =>
+          applyEvent(prev, { ...event, text: "", stream: true }),
+        );
+        const interval = streamAssistantText(
+          setState,
+          messageId,
+          event.text,
+          STREAM_CHUNK_MS,
+        );
+        intervalsRef.current.push(interval);
+      } else if (event.type === "assistant" && event.stream) {
+        setState((prev) =>
+          applyEvent(prev, { ...event, stream: false }),
+        );
+      } else {
+        setState((prev) => applyEvent(prev, event));
+      }
+    },
+    [],
+  );
+
+  const resumeActiveStreams = useCallback(
+    (
+      state: ColumnState,
+      events: TimelineEvent[],
+      setState: React.Dispatch<React.SetStateAction<ColumnState>>,
+      reducedMotion: boolean,
+    ) => {
+      if (reducedMotion) return;
+      for (const convEvent of state.events) {
+        if (convEvent.type !== "assistant" || !convEvent.isStreaming) continue;
+        const timelineEvent = events.find(
+          (e) =>
+            e.type === "assistant" &&
+            `asst-${e.at}` === convEvent.id &&
+            e.stream,
+        );
+        if (timelineEvent?.type !== "assistant") continue;
+        const interval = streamAssistantText(
+          setState,
+          convEvent.id,
+          timelineEvent.text,
+          STREAM_CHUNK_MS,
+          convEvent.text.length,
+        );
+        intervalsRef.current.push(interval);
+      }
+    },
+    [],
+  );
+
+  const scheduleFrom = useCallback(
+    (fromElapsed: number) => {
+      const config = configRef.current;
+      if (!config) return;
+
+      const scheduleColumn = (
+        events: TimelineEvent[],
+        setState: React.Dispatch<React.SetStateAction<ColumnState>>,
+        completeAt: number,
+        columnState: ColumnState,
+      ) => {
+        resumeActiveStreams(
+          columnState,
+          events,
+          setState,
+          config.reducedMotion,
+        );
+
+        for (const event of events) {
+          const at = event.type === "complete" ? completeAt : event.at;
+          if (at <= fromElapsed) continue;
+          const delay = at - fromElapsed;
+          const timer = setTimeout(() => {
+            fireEvent(event, setState, config.reducedMotion);
+          }, delay);
+          timersRef.current.push(timer);
+        }
+      };
+
+      scheduleColumn(
+        config.withoutEvents,
+        setWithoutState,
+        config.withoutEnd,
+        withoutStateRef.current,
+      );
+      scheduleColumn(
+        config.withEvents,
+        setWithState,
+        config.withEnd,
+        withStateRef.current,
+      );
+
+      const remaining = config.totalDuration - fromElapsed;
+      if (remaining > 0) {
+        const endTimer = setTimeout(() => {
+          setPlaybackStatus("finished");
+        }, remaining);
+        timersRef.current.push(endTimer);
+      } else {
+        setPlaybackStatus("finished");
+      }
+    },
+    [fireEvent, resumeActiveStreams],
+  );
+
+  const startPlayback = useCallback(
+    (fromElapsed: number) => {
+      clearAll();
+      scheduleFrom(fromElapsed);
+      setPlaybackStatus("playing");
+    },
+    [clearAll, scheduleFrom],
+  );
+
+  const pausePlayback = useCallback(() => {
+    clearAll();
+    setPlaybackStatus("paused");
+  }, [clearAll]);
+
+  const togglePlayPause = useCallback(() => {
+    if (!configRef.current) return;
+
+    switch (playbackStatus) {
+      case "idle":
+        elapsedRef.current = 0;
+        startPlayback(0);
+        break;
+      case "playing":
+        pausePlayback();
+        break;
+      case "paused":
+        startPlayback(elapsedRef.current);
+        break;
+      case "finished":
+        clearAll();
+        setWithoutState(emptyColumnState());
+        setWithState(emptyColumnState());
+        elapsedRef.current = 0;
+        startPlayback(0);
+        break;
+    }
+  }, [playbackStatus, clearAll, pausePlayback, startPlayback]);
+
   const replay = useCallback(() => {
+    clearAll();
+    setWithoutState(emptyColumnState());
+    setWithState(emptyColumnState());
+    elapsedRef.current = 0;
+    setPlaybackStatus("idle");
     setPlayKey((k) => k + 1);
-  }, []);
+  }, [clearAll]);
 
   useEffect(() => {
-    if (!prompt) return;
+    if (!prompt) {
+      configRef.current = null;
+      return;
+    }
 
     if (import.meta.env.DEV) {
       validateScenario(prompt);
@@ -184,73 +379,39 @@ export function useScenarioPlayer(prompt: ScenarioPrompt | null) {
     clearAll();
     setWithoutState(emptyColumnState());
     setWithState(emptyColumnState());
-
-    const reducedMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
-    // Each column's natural finish is "last content fully rendered + small buffer".
-    // We override any per-scenario `complete.at` so authors don't each have to
-    // tune dead time. Reduced motion skips streaming, so use raw `at` values.
-    const naturalEnd = (events: TimelineEvent[]) =>
-      reducedMotion
-        ? events.reduce(
-            (m, e) => (e.type === "complete" ? m : Math.max(m, e.at)),
-            0,
-          )
-        : getContentEndTime(events);
-    const withoutEnd = naturalEnd(prompt.withoutMCP) + COMPLETE_BUFFER_MS;
-    const withEnd = naturalEnd(prompt.withMCP) + COMPLETE_BUFFER_MS;
-    const totalDuration = Math.max(withoutEnd, withEnd) + PLAYBACK_TAIL_MS;
-    setIsPlaying(true);
-
-    const schedule = (
-      events: TimelineEvent[],
-      setState: React.Dispatch<React.SetStateAction<ColumnState>>,
-      completeAt: number,
-    ) => {
-      for (const event of events) {
-        const at = event.type === "complete" ? completeAt : event.at;
-        const timer = setTimeout(() => {
-          if (event.type === "assistant" && event.stream && !reducedMotion) {
-            const messageId = `asst-${event.at}`;
-            setState((prev) =>
-              applyEvent(prev, { ...event, text: "", stream: true }),
-            );
-            const interval = streamAssistantText(
-              setState,
-              messageId,
-              event.text,
-              STREAM_CHUNK_MS,
-            );
-            intervalsRef.current.push(interval);
-          } else if (event.type === "assistant" && event.stream) {
-            // Reduced motion: render the assistant message in full immediately.
-            setState((prev) =>
-              applyEvent(prev, { ...event, stream: false }),
-            );
-          } else {
-            setState((prev) => applyEvent(prev, event));
-          }
-        }, at);
-        timersRef.current.push(timer);
-      }
-    };
-
-    schedule(prompt.withoutMCP, setWithoutState, withoutEnd);
-    schedule(prompt.withMCP, setWithState, withEnd);
-
-    const endTimer = setTimeout(() => {
-      setIsPlaying(false);
-    }, totalDuration);
-    timersRef.current.push(endTimer);
+    elapsedRef.current = 0;
+    setPlaybackStatus("idle");
+    configRef.current = buildPlaybackConfig(prompt);
 
     return clearAll;
   }, [prompt, playKey, clearAll]);
 
+  // Track elapsed playback time while playing so pause can resume mid-timeline.
+  useEffect(() => {
+    if (playbackStatus !== "playing") return;
+
+    const startedAt = performance.now();
+    const baseElapsed = elapsedRef.current;
+
+    const tick = () => {
+      elapsedRef.current =
+        baseElapsed + (performance.now() - startedAt);
+    };
+
+    const interval = setInterval(tick, 100);
+    return () => {
+      clearInterval(interval);
+      tick();
+    };
+  }, [playbackStatus, playKey]);
+
   return {
     withoutState,
     withState,
-    isPlaying,
+    isPlaying: playbackStatus === "playing",
+    isPaused: playbackStatus === "paused",
+    playbackStatus,
+    togglePlayPause,
     replay,
   };
 }
