@@ -9,7 +9,6 @@ import {
 } from "../types/scenario";
 import { AgentColumn } from "./AgentColumn";
 import { DemoTabs } from "./DemoTabs";
-import { PlaybackControls } from "./PlaybackControls";
 import { PromptText } from "./PromptText";
 import { QualityBreakdown } from "./QualityBreakdown";
 import "./DualAgentView.css";
@@ -30,12 +29,6 @@ interface DualAgentViewProps {
   onSelectPrompt: (promptId: string) => void;
   withoutState: ColumnState;
   withState: ColumnState;
-  stepIndex: number;
-  stepCount: number;
-  canStepBack: boolean;
-  canStepForward: boolean;
-  onStepBack: () => void;
-  onStepForward: () => void;
 }
 
 export function DualAgentView({
@@ -45,12 +38,6 @@ export function DualAgentView({
   onSelectPrompt,
   withoutState,
   withState,
-  stepIndex,
-  stepCount,
-  canStepBack,
-  canStepForward,
-  onStepBack,
-  onStepForward,
 }: DualAgentViewProps) {
   // Synced collapse state for the Quality Breakdown panel below the columns.
   // Defaults to collapsed; resets to collapsed whenever the active prompt changes.
@@ -145,17 +132,7 @@ export function DualAgentView({
         />
       )}
       <div className="dual-agent__toolbar">
-        <div className="dual-agent__toolbar-row">
-          <PlaybackControls
-            stepIndex={stepIndex}
-            stepCount={stepCount}
-            canStepBack={canStepBack}
-            canStepForward={canStepForward}
-            disabled={!activePrompt}
-            onStepBack={onStepBack}
-            onStepForward={onStepForward}
-          />
-          <div className="dual-agent__prompt">
+        <div className="dual-agent__prompt">
           {scenario && activePrompt ? (
             <PromptText text={activePrompt.text} className="dual-agent__prompt-text" />
           ) : (
@@ -163,7 +140,6 @@ export function DualAgentView({
               Select a use case to start the demo
             </p>
           )}
-          </div>
         </div>
         {showSavings && (
           <p className="dual-agent__savings" role="status">

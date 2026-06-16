@@ -30,10 +30,6 @@ export default function App() {
     withState,
     replay,
     togglePlayPause,
-    stepIndex,
-    stepCount,
-    canStepBack,
-    canStepForward,
     stepForward,
     stepBackward,
   } = useScenarioPlayer(activePrompt);
@@ -120,12 +116,6 @@ export default function App() {
           onSelectPrompt={handleSelectPrompt}
           withoutState={withoutState}
           withState={withState}
-          stepIndex={stepIndex}
-          stepCount={stepCount}
-          canStepBack={canStepBack}
-          canStepForward={canStepForward}
-          onStepBack={stepBackward}
-          onStepForward={stepForward}
         />
       </main>
     </div>
