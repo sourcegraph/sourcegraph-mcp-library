@@ -13,7 +13,7 @@ const metrics: PromptMetrics = {
 
 export const getLoggerReferencesPrompt: ScenarioPrompt = {
   id: "get-logger-references",
-  label: "Cross-repo get_logger references",
+  label: "Locate all get_logger references",
   environment: "multi-repo",
   repo: "sg-distributed-systems/payment-service",
   repoUrl: "https://github.com/sg-distributed-systems/payment-service",
