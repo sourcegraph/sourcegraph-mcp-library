@@ -243,6 +243,31 @@ Replay your scenario with the numeric keys to iterate on pacing.
 
 6. **Logs are proof.** Include real `without-mcp.claude.log` and `with-mcp.claude.log` files. The "Download log" button lets viewers audit your timeline against ground truth. If the timeline doesn't match the logs, the demo loses credibility.
 
+#### Tool-card and message affordances
+
+Beyond plain text, timelines can attach interactive affordances to make a demo feel like the real agent UI. These are opt-in per event and degrade gracefully when unused.
+
+1. **Clickable links for `go_to_definition` / `find_references`.** Add a `url` field to the tool's args string and the card shows a hover-revealed link icon (same placement as the copy icon) that opens the location in a new tab. Works for `go_to_definition`, `sg_go_to_definition`, `find_references`, and `sg_find_references`. Only `http(s)` URLs are linked, and `url` is stripped from the expanded raw-args view so it stays presentation-only.
+   ```ts
+   {
+     at: 4200, type: "tool", id: "gtd1", name: "sg_go_to_definition",
+     args: '{ repo: "…", path: "…", symbol: "get_logger", url: "https://demo.sourcegraph.com/…?L16" }',
+     status: "done",
+   }
+   ```
+
+2. **Downloadable skills.** Drop a `SKILL.md` (or any artifact) into the scenario folder, import it with Vite's `?url` suffix, and pass the resolved URL as the `Skill` tool's `url` arg. The card renders a download icon that saves the file. Small files are inlined by Vite as a `data:` URL and larger ones become hashed assets — both download correctly.
+   ```ts
+   import skillMdUrl from "./SKILL.md?url";
+   // …
+   { at: 1380, type: "tool", id: "skill1", name: "Skill",
+     args: `{ skill: "sourcegraph-nav", args: "…", url: "${skillMdUrl}" }`, status: "done" }
+   ```
+
+3. **Markdown rendering in assistant messages.** Assistant `text` supports inline `` `code` `` and `**bold**`, `#`–`######` headings, and GitHub-style tables (a header row immediately followed by a `|---|---|` separator). Use this for structured final answers like a references table. The inline parser is streaming-tolerant — a half-typed marker never shows the raw `` ` `` or `*` characters. Tables can't be typewritten cleanly (raw pipes show until the separator row completes), so put a table in its own `stream: false` event; it fades in via the `tableFadeIn` animation. Stream the surrounding prose separately if you want a typewriter effect on it.
+
+#### Other notes
+
 Register new scenarios in [`src/scenarios/index.ts`](src/scenarios/index.ts).
 
 ## Playback timing

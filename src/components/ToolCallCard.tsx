@@ -1,6 +1,6 @@
 import { memo, useEffect, useRef, useState } from "react";
 import type { ToolStatus } from "../types/scenario";
-import { compactToolArg, extractArgValue } from "../utils/toolArgs";
+import { compactToolArg, extractArgValue, stripArgKey } from "../utils/toolArgs";
 import "./ToolCallCard.css";
 
 interface ToolCallCardProps {
@@ -10,6 +10,40 @@ interface ToolCallCardProps {
 }
 
 const COPYABLE_TOOLS = new Set(["keyword_search", "sg_keyword_search"]);
+
+const DEFINITION_LINK_TOOLS = new Set([
+  "go_to_definition",
+  "sg_go_to_definition",
+  "find_references",
+  "sg_find_references",
+]);
+
+const DOWNLOAD_TOOLS = new Set(["Skill"]);
+
+/** Allow only http(s) URLs so a malformed/unsafe `url` arg can't be linked. */
+function safeExternalHref(value: string | null): string | null {
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:"
+      ? url.href
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Allow downloadable-artifact hrefs produced by a Vite `?url` import: a small
+ * file is inlined as a `data:text/markdown;base64,...` URL, a larger one
+ * resolves to a root-relative `/assets/...` path. http(s) is also accepted.
+ */
+function safeDownloadHref(value: string | null): string | null {
+  if (!value) return null;
+  if (/^data:text\/(markdown|plain);/.test(value)) return value;
+  if (value.startsWith("/")) return value;
+  return safeExternalHref(value);
+}
 
 function ToolCallCardImpl({ name, args, status }: ToolCallCardProps) {
   const [expanded, setExpanded] = useState(false);
@@ -24,9 +58,21 @@ function ToolCallCardImpl({ name, args, status }: ToolCallCardProps) {
 
   const isRunning = status === "running";
   const compact = compactToolArg(name, args);
-  const copyableQuery = COPYABLE_TOOLS.has(name)
-    ? extractArgValue(args, "query")
-    : null;
+  // `url` is presentation-only metadata for the link icon; hide it from the
+  // expanded raw-args view.
+  const expandedArgs = stripArgKey(args, "url");
+  const definitionHref =
+    !isRunning && DEFINITION_LINK_TOOLS.has(name)
+      ? safeExternalHref(extractArgValue(args, "url"))
+      : null;
+  const downloadHref =
+    !isRunning && DOWNLOAD_TOOLS.has(name)
+      ? safeDownloadHref(extractArgValue(args, "url"))
+      : null;
+  const copyableQuery =
+    !definitionHref && !downloadHref && COPYABLE_TOOLS.has(name)
+      ? extractArgValue(args, "query")
+      : null;
 
   const handleCopy = async () => {
     if (!copyableQuery) return;
@@ -56,14 +102,65 @@ function ToolCallCardImpl({ name, args, status }: ToolCallCardProps) {
           {name.replace(/^sg_/, "")}
         </span>
         <span className="tool-card__args">
-          {expanded ? args : compact}
+          {expanded ? expandedArgs : compact}
         </span>
         {isRunning && <span className="tool-card__dot" aria-label="running" />}
       </button>
+      {definitionHref && (
+        <a
+          className="tool-card__action tool-card__link"
+          href={definitionHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Open in Sourcegraph (new tab)"
+          title="Open in Sourcegraph"
+        >
+          <svg
+            viewBox="0 0 16 16"
+            width="14"
+            height="14"
+            aria-hidden
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M6.5 9.5 9.5 6.5" />
+            <path d="M7.6 4.4 8.8 3.2a3 3 0 0 1 4.2 4.2l-1.2 1.2" />
+            <path d="M8.4 11.6 7.2 12.8a3 3 0 0 1-4.2-4.2l1.2-1.2" />
+          </svg>
+        </a>
+      )}
+      {downloadHref && (
+        <a
+          className="tool-card__action tool-card__link"
+          href={downloadHref}
+          download="SKILL.md"
+          aria-label="Download SKILL.md"
+          title="Download SKILL.md"
+        >
+          <svg
+            viewBox="0 0 16 16"
+            width="14"
+            height="14"
+            aria-hidden
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M8 2.5v7" />
+            <path d="M5 6.5 8 9.5l3-3" />
+            <path d="M3 12.5h10" />
+          </svg>
+        </a>
+      )}
       {copyableQuery && (
         <button
           type="button"
-          className={`tool-card__copy ${
+          className={`tool-card__action tool-card__copy ${
             copied ? "tool-card__copy--copied" : ""
           }`}
           aria-label={copied ? "Copied" : "Copy query"}

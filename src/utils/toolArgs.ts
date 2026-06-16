@@ -115,6 +115,22 @@ export function extractArgValue(args: string, key: string): string | null {
 }
 
 /**
+ * Remove a `key: "..."` entry (and one adjacent comma) from an args
+ * object-literal string. Used to hide presentation-only keys such as `url`
+ * from the expanded raw-args view. Returns the original string if absent.
+ */
+export function stripArgKey(args: string, key: string): string {
+  const value = `"(?:[^"\\\\]|\\\\.)*"`;
+  return args
+    // ", key: "..."" — key preceded by a comma (e.g. the last entry)
+    .replace(new RegExp(`,\\s*\\b${key}\\b\\s*:\\s*${value}`), "")
+    // "key: "...", " — key followed by a comma (e.g. the first entry)
+    .replace(new RegExp(`\\b${key}\\b\\s*:\\s*${value}\\s*,\\s*`), "")
+    // "key: "..."" — the only entry
+    .replace(new RegExp(`\\b${key}\\b\\s*:\\s*${value}`), "");
+}
+
+/**
  * Extract the most informative single value from a tool-call args string for
  * the compact, single-line preview based on the tool's name.
  */

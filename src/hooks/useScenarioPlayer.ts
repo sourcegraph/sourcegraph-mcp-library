@@ -284,7 +284,11 @@ export function useScenarioPlayer(prompt: ScenarioPrompt | null) {
 
         for (const event of events) {
           const at = event.type === "complete" ? completeAt : event.at;
-          if (at <= fromElapsed) continue;
+          // On a fresh start (fromElapsed === 0) we must still fire events at
+          // at: 0; only skip events strictly before the start. When resuming
+          // mid-timeline we skip everything up to and including fromElapsed so
+          // already-played events don't re-fire.
+          if (fromElapsed === 0 ? at < fromElapsed : at <= fromElapsed) continue;
           const delay = at - fromElapsed;
           const timer = setTimeout(() => {
             fireEvent(event, setState, config.reducedMotion);
