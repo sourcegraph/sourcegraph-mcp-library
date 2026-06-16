@@ -25,8 +25,18 @@ export default function App() {
     return getScenarioPrompt(scenario, activePromptId) ?? null;
   }, [scenario, activePromptId]);
 
-  const { withoutState, withState, replay, togglePlayPause } =
-    useScenarioPlayer(activePrompt);
+  const {
+    withoutState,
+    withState,
+    replay,
+    togglePlayPause,
+    stepIndex,
+    stepCount,
+    canStepBack,
+    canStepForward,
+    stepForward,
+    stepBackward,
+  } = useScenarioPlayer(activePrompt);
 
   const handleSelectScenario = useCallback((id: string) => {
     const next = getScenarioById(id);
@@ -69,6 +79,16 @@ export default function App() {
         togglePlayPause();
         return;
       }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        stepBackward();
+        return;
+      }
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        stepForward();
+        return;
+      }
       const num = parseInt(e.key, 10);
       if (num >= 1 && num <= scenarios.length) {
         const next = scenarios[num - 1];
@@ -82,7 +102,7 @@ export default function App() {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [activeId, replay, togglePlayPause]);
+  }, [activeId, replay, togglePlayPause, stepBackward, stepForward]);
 
   return (
     <div className="app">
@@ -100,6 +120,12 @@ export default function App() {
           onSelectPrompt={handleSelectPrompt}
           withoutState={withoutState}
           withState={withState}
+          stepIndex={stepIndex}
+          stepCount={stepCount}
+          canStepBack={canStepBack}
+          canStepForward={canStepForward}
+          onStepBack={stepBackward}
+          onStepForward={stepForward}
         />
       </main>
     </div>

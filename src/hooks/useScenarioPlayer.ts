@@ -154,6 +154,68 @@ function streamAssistantText(
   return interval;
 }
 
+function eventAt(event: TimelineEvent, completeAt: number): number {
+  return event.type === "complete" ? completeAt : event.at;
+}
+
+function buildStepBoundaries(config: PlaybackConfig): number[] {
+  const times = new Set<number>([0]);
+
+  const collect = (events: TimelineEvent[], completeAt: number) => {
+    for (const event of events) {
+      times.add(eventAt(event, completeAt));
+    }
+  };
+
+  collect(config.withoutEvents, config.withoutEnd);
+  collect(config.withEvents, config.withEnd);
+
+  return Array.from(times).sort((a, b) => a - b);
+}
+
+function stepIndexForElapsed(boundaries: number[], elapsed: number): number {
+  let idx = 0;
+  for (let i = 0; i < boundaries.length; i++) {
+    if (boundaries[i] <= elapsed) idx = i;
+    else break;
+  }
+  return idx;
+}
+
+function applyEventInstant(
+  state: ColumnState,
+  event: TimelineEvent,
+): ColumnState {
+  if (event.type === "assistant" && event.stream) {
+    return applyEvent(state, { ...event, stream: false });
+  }
+  return applyEvent(state, event);
+}
+
+function buildStateAtElapsed(
+  events: TimelineEvent[],
+  completeAt: number,
+  elapsed: number,
+): ColumnState {
+  let state = emptyColumnState();
+  for (const event of events) {
+    const at = eventAt(event, completeAt);
+    if (at > elapsed) break;
+    state = applyEventInstant(state, event);
+  }
+  return state;
+}
+
+function playbackStatusAtElapsed(
+  elapsed: number,
+  config: PlaybackConfig,
+): PlaybackStatus {
+  if (elapsed <= 0) return "idle";
+  const lastContentEnd = Math.max(config.withoutEnd, config.withEnd);
+  if (elapsed >= lastContentEnd) return "finished";
+  return "paused";
+}
+
 function buildPlaybackConfig(prompt: ScenarioPrompt): PlaybackConfig {
   const reducedMotion = window.matchMedia(
     "(prefers-reduced-motion: reduce)",
@@ -187,8 +249,11 @@ export function useScenarioPlayer(prompt: ScenarioPrompt | null) {
   const [playbackStatus, setPlaybackStatus] =
     useState<PlaybackStatus>("idle");
   const [playKey, setPlayKey] = useState(0);
+  const [stepIndex, setStepIndex] = useState(0);
+  const [stepCount, setStepCount] = useState(1);
 
   const configRef = useRef<PlaybackConfig | null>(null);
+  const stepBoundariesRef = useRef<number[]>([0]);
   const elapsedRef = useRef(0);
   const withoutStateRef = useRef(withoutState);
   const withStateRef = useRef(withState);
@@ -335,7 +400,47 @@ export function useScenarioPlayer(prompt: ScenarioPrompt | null) {
   const pausePlayback = useCallback(() => {
     clearAll();
     setPlaybackStatus("paused");
+    setStepIndex(
+      stepIndexForElapsed(stepBoundariesRef.current, elapsedRef.current),
+    );
   }, [clearAll]);
+
+  const seekToElapsed = useCallback(
+    (elapsed: number) => {
+      const config = configRef.current;
+      if (!config) return;
+
+      clearAll();
+      elapsedRef.current = elapsed;
+      setWithoutState(
+        buildStateAtElapsed(
+          config.withoutEvents,
+          config.withoutEnd,
+          elapsed,
+        ),
+      );
+      setWithState(
+        buildStateAtElapsed(config.withEvents, config.withEnd, elapsed),
+      );
+      setPlaybackStatus(playbackStatusAtElapsed(elapsed, config));
+      setStepIndex(stepIndexForElapsed(stepBoundariesRef.current, elapsed));
+    },
+    [clearAll],
+  );
+
+  const stepForward = useCallback(() => {
+    const boundaries = stepBoundariesRef.current;
+    const idx = stepIndexForElapsed(boundaries, elapsedRef.current);
+    if (idx >= boundaries.length - 1) return;
+    seekToElapsed(boundaries[idx + 1]);
+  }, [seekToElapsed]);
+
+  const stepBackward = useCallback(() => {
+    const boundaries = stepBoundariesRef.current;
+    const idx = stepIndexForElapsed(boundaries, elapsedRef.current);
+    if (idx <= 0) return;
+    seekToElapsed(boundaries[idx - 1]);
+  }, [seekToElapsed]);
 
   const togglePlayPause = useCallback(() => {
     if (!configRef.current) return;
@@ -366,6 +471,7 @@ export function useScenarioPlayer(prompt: ScenarioPrompt | null) {
     setWithoutState(emptyColumnState());
     setWithState(emptyColumnState());
     elapsedRef.current = 0;
+    setStepIndex(0);
     setPlaybackStatus("idle");
     setPlayKey((k) => k + 1);
   }, [clearAll]);
@@ -384,8 +490,13 @@ export function useScenarioPlayer(prompt: ScenarioPrompt | null) {
     setWithoutState(emptyColumnState());
     setWithState(emptyColumnState());
     elapsedRef.current = 0;
+    setStepIndex(0);
     setPlaybackStatus("idle");
-    configRef.current = buildPlaybackConfig(prompt);
+    const config = buildPlaybackConfig(prompt);
+    configRef.current = config;
+    const boundaries = buildStepBoundaries(config);
+    stepBoundariesRef.current = boundaries;
+    setStepCount(boundaries.length);
 
     return clearAll;
   }, [prompt, playKey, clearAll]);
@@ -417,5 +528,11 @@ export function useScenarioPlayer(prompt: ScenarioPrompt | null) {
     playbackStatus,
     togglePlayPause,
     replay,
+    stepIndex,
+    stepCount,
+    canStepBack: stepIndex > 0,
+    canStepForward: stepIndex < stepCount - 1,
+    stepForward,
+    stepBackward,
   };
 }

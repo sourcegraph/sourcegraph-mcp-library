@@ -16,6 +16,17 @@
   border-radius: var(--radius-pane);
 }
 
+.dual-agent__toolbar-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.dual-agent__toolbar-row .dual-agent__prompt {
+  flex: 1;
+  min-width: 0;
+}
+
 .dual-agent__prompt-text {
   font-size: var(--font-size-base);
   line-height: var(--line-height-normal);

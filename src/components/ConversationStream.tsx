@@ -254,9 +254,15 @@ function ConversationStreamImpl({ events }: ConversationStreamProps) {
       aria-live="polite"
     >
       {isEmpty && (
-        <p className="conversation-stream__idle-hint">
-          Press <kbd>space</kbd> to begin
-        </p>
+        <div className="conversation-stream__idle-hints">
+          <p className="conversation-stream__idle-hint">
+            Press <kbd>space</kbd> to begin
+          </p>
+          <p className="conversation-stream__idle-hint conversation-stream__idle-hint--secondary">
+            Use <kbd>↑</kbd> and <kbd>↓</kbd> to return to the previous step or
+            skip ahead
+          </p>
+        </div>
       )}
       {visibleEvents.map((event) => {
         if (event.type === "assistant") {
