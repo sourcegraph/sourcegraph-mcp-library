@@ -51,6 +51,105 @@
   margin: 0;
 }
 
+.conversation-item__rich {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.conversation-item__textblock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.conversation-stream__heading {
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: var(--line-height-tight);
+  margin: 4px 0 0;
+}
+
+.conversation-stream__heading--h1 {
+  font-size: var(--font-size-2xl);
+}
+
+.conversation-stream__heading--h2 {
+  font-size: var(--font-size-lg);
+}
+
+.conversation-stream__heading--h3 {
+  font-size: var(--font-size-md);
+  color: var(--text-secondary);
+}
+
+.conversation-stream__heading--h4,
+.conversation-stream__heading--h5,
+.conversation-stream__heading--h6 {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.conversation-stream__code {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  background: var(--bg-inset);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm, 4px);
+  padding: 1px 5px;
+  white-space: nowrap;
+  color: var(--text-primary);
+}
+
+.conversation-stream__table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-tight);
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  animation: tableFadeIn 650ms ease-out both;
+}
+
+.conversation-stream__table thead th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--bg-inset);
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  white-space: nowrap;
+}
+
+.conversation-stream__table tbody tr {
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.conversation-stream__table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.conversation-stream__table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.conversation-stream__table td {
+  padding: 7px 12px;
+  vertical-align: top;
+  color: var(--text-secondary);
+}
+
+/* Code pills inside table cells sit flush with the tighter row rhythm. */
+.conversation-stream__table td .conversation-stream__code {
+  white-space: normal;
+}
+
 .conversation-item__cursor {
   display: inline-block;
   color: var(--text-primary);
@@ -67,6 +166,15 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes tableFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
 

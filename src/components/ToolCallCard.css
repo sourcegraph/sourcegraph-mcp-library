@@ -79,7 +79,7 @@
   animation: tool-spin 0.7s linear infinite;
 }
 
-.tool-card__copy {
+.tool-card__action {
   all: unset;
   box-sizing: border-box;
   display: inline-flex;
@@ -96,21 +96,25 @@
   transition: opacity 120ms ease, color 120ms ease, background-color 120ms ease;
 }
 
-.tool-card:hover .tool-card__copy,
-.tool-card:focus-within .tool-card__copy,
-.tool-card__copy:focus-visible,
+.tool-card:hover .tool-card__action,
+.tool-card:focus-within .tool-card__action,
+.tool-card__action:focus-visible,
 .tool-card__copy--copied {
   opacity: 1;
 }
 
-.tool-card__copy:hover {
+.tool-card__action:hover {
   color: var(--text-primary);
   background: rgba(255, 255, 255, 0.04);
 }
 
-.tool-card__copy:focus-visible {
+.tool-card__action:focus-visible {
   outline: 2px solid var(--focus-ring, currentColor);
   outline-offset: -2px;
+}
+
+.tool-card__link {
+  text-decoration: none;
 }
 
 .tool-card__copy--copied {
