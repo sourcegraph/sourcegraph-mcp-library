@@ -48,7 +48,7 @@ Presenter guide for the dual-agent demo UI (`npm run dev`). Each scenario runs s
 
 **Press `1`** | Repos: ADS microservices, Apache Flink
 
-This scenario has three sub-demos. Lead with **Architecture comprehension** (Flink), then optionally show **Multi-repo business logic (ADS)**.
+This scenario has three sub-demos. Lead with **Architecture comprehension** (Flink), then optionally show **Multi-repo business logic (ADS)** or **Cross-repo protocol comparison (gRPC)**.
 
 ### Demo 1A: Flink checkpoint architecture (flagship)
 
@@ -108,6 +108,49 @@ This scenario has three sub-demos. Lead with **Architecture comprehension** (Fli
 #### TELL
 
 > "Without MCP, the agent gave a plausible onboarding doc for the **wrong architecture**. With MCP, it mapped production reality across repos you don't even have cloned."
+
+### Demo 1C: gRPC cross-repo protocol comparison (optional)
+
+**Tab:** Cross-repo protocol comparison | **Repos:** `grpc/grpc-go`, `connectrpc/connect-go`
+
+#### TELL — The scenario
+
+> "You're comparing two RPC libraries: trace how an RPC timeout propagates from a Go caller to the server in **both** `grpc-go` and `connect-go`. Where does the client encode the context deadline onto the wire, how does the server enforce it, and what's the key architectural difference in how each library owns timeout encoding?"
+
+> "The catch: you have `grpc-go` checked out locally, but `connect-go` is not on disk. Half the answer lives in a repo you don't have."
+
+#### SHOW — Run the demo
+
+> "Watch what happens when the agent finishes the local half and reaches for the repo it doesn't have."
+
+**Call out on Without MCP (~18 min, $3.80):**
+
+- Traces the `grpc-go` side cleanly from local source — `http2_client.go` → `handler_server.go` → `transport.go`
+- Then **thrashes** trying to find `connect-go`: `find` in workspace, GOPATH module cache, `find /`, GitHub API curl — all fail
+- **85 tool calls**, much of it failed filesystem and network searches
+- Falls back to describing connect-go from the **public protocol spec** — correct wire format, but `SetTimeout()` internals and the protocol-abstraction design **unverified and missed**
+- Quality **0.18** — answered one repo, guessed the other
+
+**Call out on With MCP (~5.5 min, $1.32):**
+
+- `list_repos` discovers **both** repos, then reads exact line ranges from each
+- Traces `grpc-go` and `connect-go` end-to-end from indexed source
+- Surfaces the key insight only visible reading both: `grpc-go` embeds timeout in the HTTP/2 transport; `connect-go` lifts it to a first-class `Protocol` interface (`SetTimeout`) so each protocol owns its own encoding
+- **31 tool calls** — ~63% fewer; ~70% faster; ~65% cheaper
+- Quality **0.88**
+
+**Expand Quality Breakdown:**
+
+- Task quality: 0.20 → 1.00
+- File recall: 2/8 → 7/8
+- Cross-repo coverage: 0.00 → 1.00 — baseline had zero verified connect-go source
+- Composite: **0.18 → 0.88** (~5× better)
+
+#### TELL — The takeaway
+
+> "The architectural difference — the actual point of the question — only becomes visible when you read **both** codebases together. Baseline physically couldn't, so it spent 85 tool calls and 18 minutes to deliver half an answer plus a confident guess."
+
+> "MCP read verified source from a repo that was never on the machine, and got both the mechanism and the design insight right in a third of the time."
 
 ---
 
@@ -211,7 +254,11 @@ This scenario has three sub-demos. Lead with **Architecture comprehension** (Fli
 
 ## Scenario 4 — Bug Fixing & Tests
 
-**Press `4`** | **Tab:** DuckLake repeated-INSERT IO error (wasm runtime) | **Repos:** `duckdb/duckdb`, `duckdb/ducklake`, `duckdb/duckdb-wasm` (multi-repo)
+**Press `4`** | Two sub-demos: DuckLake repeated-INSERT IO error, cross-repo `get_logger` reference hunt
+
+### Demo 4A: DuckLake repeated-INSERT IO error (flagship)
+
+**Tab:** DuckLake repeated-INSERT IO error (wasm runtime) | **Repos:** `duckdb/duckdb`, `duckdb/ducklake`, `duckdb/duckdb-wasm` (multi-repo)
 
 #### TELL — The scenario
 
@@ -256,6 +303,46 @@ This scenario has three sub-demos. Lead with **Architecture comprehension** (Fli
 > "MCP still wins: same correct diagnosis and patch, but with targeted cross-repo reads instead of directory walks. For bug fixing across services or extension boundaries, that's fewer dead ends and a faster path to the file you actually need to edit."
 
 > "Download the logs if anyone asks whether both runs really implemented the fix — they're full transcripts from the harness."
+
+### Demo 4B: Cross-repo `get_logger` reference hunt (optional)
+
+**Tab:** Locate all get_logger references | **Repo:** `sg-distributed-systems/payment-service` (one of 10 services in the org)
+
+#### TELL — The scenario
+
+> "A rename mismatch — `method` vs `payment_method` — has silently broken log-based queries. Before anyone can fix it, they need the blast radius: **every** place `get_logger` is used, file and line."
+
+> "The trap: you only have `payment-service` checked out locally. But `get_logger` is defined in a **separate** `core-logger` repo and used across **10 services** in the org. A local grep can only see what's on disk."
+
+#### SHOW — Run the demo
+
+> "This is the fastest, most visceral contrast in the deck. Watch the tool calls — one grep vs a definition jump plus a reference search."
+
+**Call out on Without MCP (~7s, $0.09):**
+
+- **1 tool call** — `grep -rn "get_logger"` in the local checkout
+- Returns **5 references**, all inside payment-service, and stops — confident and done
+- Never locates the definition; only sees the `from core_logger import get_logger` import string
+- Quality **0.09** — fast, cheap, and **45 references short**
+
+**Call out on With MCP (~35s, $0.28):**
+
+- **3 tool calls** — loads the `sourcegraph-nav` skill, then `go_to_definition` → `find_references`
+- `go_to_definition` jumps to the real definition in a **different repo**: `core-logger/src/core_logger/factory.py:12` (plus re-exports in `__init__.py`)
+- `find_references` anchored at the definition returns **all 50 sites across all 10 repos** — every `lifecycle.py` (import + 2 calls) and `service.py` (import + 1 call)
+- Quality **1.00**
+
+**Expand Quality Breakdown:**
+
+- Definition located (10%): 0.00 → 1.00 — baseline never found where `get_logger` lives
+- All locations found (90%): 5/50 (10%) → 50/50 (100%)
+- Composite: **0.09 → 1.00**
+
+#### TELL — The takeaway
+
+> "Baseline was 5× faster and a third of the cost — and it missed **90% of the answer**. For a 'find every usage before I refactor' task, a confidently-wrong partial list is worse than no answer: you ship the rename, and the 45 sites you never saw break silently."
+
+> "MCP's edge is `go_to_definition` crossing the repo boundary, then `find_references` anchored at the definition — that's what turns a single-repo grep into the complete cross-repo truth."
 
 ---
 
